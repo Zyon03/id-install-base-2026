@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: Create Equipment
+  version: 1.0.0
+  description: >
+    Creates a new equipment record under an existing customer. Used by the
+    /new form — the customer is always created first via a separate POST
+    /api/customers call if it doesn't already exist (see
+    ../customers/create_customer.yaml), so this endpoint only ever
+    references a customer_id, never creates one inline.
+
+paths:
+  /api/equipment:
+    post:
+      operationId: createEquipment
+      summary: Create a new equipment record under an existing customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEquipmentRequest"
+            example:
+              customer_id: "clx0000000000000000001"
+              equip_tag: "CMP-001"
+              model: "RXF 85 H"
+              compressor_type: "Screw"
+              serial_number: "10241H19882765"
+              brand: "Frick"
+              motor_make_model: "ABB M3BP"
+              motor_serial: "MS-001"
+              motor_kw: 75
+              controller_type: "Quantum LX"
+              oil_type: "Synthetic"
+              ref_type: "R717"
+      responses:
+        "201":
+          description: >
+            The newly created equipment record, in the same denormalized
+            shape as a GET /api/equipment list item (with its customer's
+            fields included).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "list_equipment.yaml#/components/schemas/EquipmentListItem"
+        "400":
+          description: >
+            Invalid field value, unknown field, a missing/blank required
+            field (equip_tag, model, compressor_type, serial_number, brand,
+            motor_make_model, motor_serial, motor_kw, controller_type,
+            oil_type, ref_type — the 11 equipment-side required fields from
+            SPEC.md's Required Fields list; the 4 customer-side ones were
+            already enforced when the customer was created), or a
+            customer_id that isn't a valid string.
+          $ref: "../_shared/error.yaml#/components/responses/BadRequest"
+        "404":
+          description: customer_id does not reference an existing customer.
+          $ref: "../_shared/error.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
+
+components:
+  schemas:
+    CreateEquipmentRequest:
+      type: object
+      description: >
+        `customer_id` plus the 11 equipment-side required fields (per
+        SPEC.md) are required; every other equipment field is optional.
+        No customer fields are accepted here — this endpoint only
+        references an existing customer, never creates or edits one.
+      required:
+        - customer_id
+        - equip_tag
+        - model
+        - compressor_type
+        - serial_number
+        - brand
+        - motor_make_model
+        - motor_serial
+        - motor_kw
+        - controller_type
+        - oil_type
+        - ref_type
+      properties:
+        customer_id:
+          type: string
+        equip_tag:
+          type: string
+        model:
+          type: string
+        compressor_type:
+          type: string
+        serial_number:
+          type: string
+        brand:
+          type: string
+        motor_make_model:
+          type: string
+        motor_serial:
+          type: string
+        motor_kw:
+          type: number
+        year_installed:
+          type: integer
+          format: int32
+          nullable: true
+        year_commissioned:
+          type: integer
+          format: int32
+          nullable: true
+        running_hours:
+          type: number
+          nullable: true
+        last_service_date:
+          type: string
+          format: date-time
+          nullable: true
+        comments:
+          type: string
+          nullable: true
+        area_classification:
+          type: string
+          nullable: true
+        equipment_sales_person:
+          type: string
+          nullable: true
+        controller_type:
+          type: string
+        oil_type:
+          type: string
+        oil_charge:
+          type: string
+          nullable: true
+        ref_type:
+          type: string
+        ref_charge:
+          type: string
+          nullable: true
+        detailed_comments:
+          type: string
+          nullable: true
+        third_party_compressor_model:
+          type: string
+          nullable: true
+        third_party_run_hours:
+          type: number
+          nullable: true
+        third_party_psa_contract:
+          type: string
+          nullable: true
+        condenser_make_model:
+          type: string
+          nullable: true
+        ammonia_pump_make_model:
+          type: string
+          nullable: true
