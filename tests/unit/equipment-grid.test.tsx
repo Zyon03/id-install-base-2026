@@ -1,7 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { EquipmentGrid, type EquipmentListItem } from "@/components/installs/EquipmentGrid";
+import {
+  computeEquipmentDiff,
+  EquipmentGrid,
+  updateEquipmentRow,
+  type EquipmentListItem,
+} from "@/components/installs/EquipmentGrid";
 
 // jsdom has no ResizeObserver; MUI X Data Grid needs one to measure its viewport.
 class ResizeObserverStub {
@@ -188,5 +193,161 @@ describe("EquipmentGrid", () => {
     render(<EquipmentGrid />);
 
     expect(await screen.findByText("Something broke")).toBeInTheDocument();
+  });
+});
+
+// The MUI X Data Grid's cell edit UI (double-click to enter edit mode, type,
+// commit) is known-fiddly to drive reliably through userEvent in jsdom — the
+// edit input's mount/unmount timing and focus handling don't always resolve
+// deterministically in the test environment. Rather than fight that, the
+// diff-computation and PATCH-calling logic that backs `processRowUpdate` is
+// extracted into standalone functions (`computeEquipmentDiff`,
+// `updateEquipmentRow`) and unit tested directly here — this covers the
+// actual persistence/error-handling logic precisely, without depending on
+// DataGrid's internal edit-mode DOM structure.
+describe("computeEquipmentDiff", () => {
+  it("returns only the fields that changed, restricted to editable fields", () => {
+    const newRow: EquipmentListItem = { ...EXAMPLE_ITEM, region: "Jakarta", motor_kw: 9.2 };
+
+    expect(computeEquipmentDiff(newRow, EXAMPLE_ITEM)).toEqual({
+      region: "Jakarta",
+      motor_kw: 9.2,
+    });
+  });
+
+  it("ignores changes to non-editable fields such as customer_no or id", () => {
+    const newRow: EquipmentListItem = {
+      ...EXAMPLE_ITEM,
+      customer_no: 999,
+      id: "some-other-id",
+      updated_at: "2026-08-09T12:00:00.000Z",
+    };
+
+    expect(computeEquipmentDiff(newRow, EXAMPLE_ITEM)).toEqual({});
+  });
+
+  it("returns an empty object when nothing changed", () => {
+    expect(computeEquipmentDiff(EXAMPLE_ITEM, EXAMPLE_ITEM)).toEqual({});
+  });
+});
+
+describe("updateEquipmentRow", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns oldRow without calling fetch when the diff is empty", async () => {
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy as unknown as typeof fetch;
+
+    const result = await updateEquipmentRow(EXAMPLE_ITEM, EXAMPLE_ITEM);
+
+    expect(result).toBe(EXAMPLE_ITEM);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("PATCHes only the diff and resolves with the server's updated row on success", async () => {
+    const updatedItem: EquipmentListItem = { ...EXAMPLE_ITEM, region: "Jakarta" };
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: updatedItem }),
+    } as Response);
+    global.fetch = fetchSpy as unknown as typeof fetch;
+
+    const newRow: EquipmentListItem = { ...EXAMPLE_ITEM, region: "Jakarta" };
+    const result = await updateEquipmentRow(newRow, EXAMPLE_ITEM);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toBe(`/api/equipment/${EXAMPLE_ITEM.id}`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({ region: "Jakarta" });
+    expect(result).toEqual(updatedItem);
+  });
+
+  it("throws with the API's error message on a non-2xx response, leaving the row unchanged", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        error: { code: "validation_error", message: "Region is required" },
+      }),
+    } as Response);
+
+    const newRow: EquipmentListItem = { ...EXAMPLE_ITEM, region: null };
+
+    await expect(updateEquipmentRow(newRow, EXAMPLE_ITEM)).rejects.toThrow("Region is required");
+  });
+});
+
+describe("EquipmentGrid inline cell editing (wired end to end)", () => {
+  it("persists an edited cell via PATCH /api/equipment/{id} and reflects the server's response", async () => {
+    const updatedItem: EquipmentListItem = {
+      ...EXAMPLE_ITEM,
+      brand: "Grasso",
+      updated_at: "2026-08-09T12:00:00.000Z",
+    };
+
+    global.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        expect(JSON.parse(init.body as string)).toEqual({ brand: "Grasso" });
+        return { ok: true, json: async () => ({ data: updatedItem }) } as Response;
+      }
+      return { ok: true, json: async () => buildResponse() } as Response;
+    }) as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+
+    const cellContent = await screen.findByText("Frick");
+    const cell = cellContent.closest('[role="gridcell"]') as HTMLElement;
+    expect(cell).not.toBeNull();
+
+    await user.dblClick(cell);
+    const input = await waitFor(() => within(cell).getByRole("textbox") as HTMLInputElement);
+    await user.clear(input);
+    await user.type(input, "Grasso{Enter}");
+
+    expect(await screen.findByText("Grasso")).toBeInTheDocument();
+  });
+
+  it("reverts the cell and surfaces the error via the Alert when the PATCH fails", async () => {
+    global.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        return {
+          ok: false,
+          status: 400,
+          json: async () => ({
+            error: { code: "validation_error", message: "Brand is required" },
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => buildResponse() } as Response;
+    }) as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+
+    const cellContent = await screen.findByText("Frick");
+    const cell = cellContent.closest('[role="gridcell"]') as HTMLElement;
+    expect(cell).not.toBeNull();
+
+    await user.dblClick(cell);
+    const input = await waitFor(() => within(cell).getByRole("textbox") as HTMLInputElement);
+    await user.clear(input);
+    await user.type(input, "Broken Edit{Enter}");
+
+    // On a rejected processRowUpdate, MUI X Data Grid keeps the cell in edit
+    // mode (so the user can correct the value) rather than snapping straight
+    // back to view mode — but it does NOT commit the invalid value: the
+    // grid's underlying row data is left untouched. Confirm the error surfaced
+    // via the shared Alert, then cancel the edit (Escape) to observe that the
+    // committed cell value reverted to the pre-edit value, never having been
+    // saved as "Broken Edit".
+    expect(await screen.findByText("Brand is required")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+
+    expect(await screen.findByText("Frick")).toBeInTheDocument();
+    expect(screen.queryByText("Broken Edit")).not.toBeInTheDocument();
   });
 });

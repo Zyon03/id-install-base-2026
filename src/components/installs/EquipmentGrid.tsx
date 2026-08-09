@@ -108,6 +108,125 @@ function isFilterableField(field: string): field is FilterableField {
 // showing "contains"/"starts with" etc. would silently do nothing on the server.
 const equalsOnlyOperators = getGridStringOperators().filter((operator) => operator.value === "equals");
 
+// Exactly the fields listed in `UpdateEquipmentRequest` in
+// contracts/equipment/update_equipment.yaml. Everything else on the row —
+// id/customer_id/customer_no (system-generated) and created_at/updated_at
+// (system-managed timestamps) — is not user-editable.
+const EDITABLE_FIELDS = [
+  "customer_name",
+  "address",
+  "region",
+  "territory",
+  "main_contact",
+  "contact_number",
+  "email",
+  "location",
+  "fnb_or_yps",
+  "psa_status",
+  "psa_contract",
+  "psa_end_date",
+  "sales_rep",
+  "ops_team",
+  "equip_tag",
+  "model",
+  "compressor_type",
+  "serial_number",
+  "brand",
+  "motor_make_model",
+  "motor_serial",
+  "motor_kw",
+  "year_installed",
+  "year_commissioned",
+  "running_hours",
+  "last_service_date",
+  "comments",
+  "area_classification",
+  "equipment_sales_person",
+  "controller_type",
+  "oil_type",
+  "oil_charge",
+  "ref_type",
+  "ref_charge",
+  "detailed_comments",
+  "third_party_compressor_model",
+  "third_party_run_hours",
+  "third_party_psa_contract",
+  "condenser_make_model",
+  "ammonia_pump_make_model",
+] as const;
+
+type EditableField = (typeof EDITABLE_FIELDS)[number];
+
+// The PATCH body shape: a partial diff of only the fields that actually
+// changed, keyed by the same EditableField set as the contract's
+// UpdateEquipmentRequest schema.
+type EquipmentUpdatePayload = Partial<Pick<EquipmentListItem, EditableField>>;
+
+function editableColumnProps(): Partial<GridColDef<EquipmentListItem>> {
+  return { editable: true };
+}
+
+// Converts an edited Date (from the date-picker edit component) back into the
+// ISO string the row/API expect, pairing with the read-mode `valueGetter:
+// toDate` on date columns so the row's underlying value stays a string.
+function dateValueSetter(field: "psa_end_date" | "last_service_date") {
+  return (value: unknown, row: EquipmentListItem): EquipmentListItem => ({
+    ...row,
+    [field]: value instanceof Date && !Number.isNaN(value.getTime()) ? value.toISOString() : null,
+  });
+}
+
+// Pure diff of only the fields that changed between the grid's edited row and
+// its previous value, restricted to the contract's editable field set. Sending
+// only the diff (rather than the full row) matters for correctness, not just
+// efficiency — the API only validates fields present in the request body, so
+// this avoids tripping required-field validation on unrelated blank legacy
+// fields elsewhere on the row.
+export function computeEquipmentDiff(
+  newRow: EquipmentListItem,
+  oldRow: EquipmentListItem,
+): EquipmentUpdatePayload {
+  const diff: Record<string, unknown> = {};
+  for (const field of EDITABLE_FIELDS) {
+    if (newRow[field] !== oldRow[field]) {
+      diff[field] = newRow[field];
+    }
+  }
+  return diff as EquipmentUpdatePayload;
+}
+
+// Sends the diff between newRow/oldRow to PATCH /api/equipment/{id} and
+// resolves with the server's updated row. Extracted as a standalone function
+// (rather than inlined in the DataGrid's processRowUpdate prop) so it can be
+// unit tested directly without driving the full DataGrid edit-mode UI in
+// jsdom.
+export async function updateEquipmentRow(
+  newRow: EquipmentListItem,
+  oldRow: EquipmentListItem,
+): Promise<EquipmentListItem> {
+  const diff = computeEquipmentDiff(newRow, oldRow);
+
+  if (Object.keys(diff).length === 0) {
+    return oldRow;
+  }
+
+  const response = await fetch(`/api/equipment/${oldRow.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(diff),
+  });
+
+  if (!response.ok) {
+    const body: ApiErrorResponse | null = await response.json().catch(() => null);
+    throw new Error(
+      body?.error?.message ?? `Failed to update equipment (status ${response.status}).`,
+    );
+  }
+
+  const body = (await response.json()) as { data: EquipmentListItem };
+  return body.data;
+}
+
 function toDate(value: unknown): Date | null {
   if (typeof value !== "string" || value.length === 0) return null;
   const date = new Date(value);
@@ -130,17 +249,59 @@ const columns: GridColDef<EquipmentListItem>[] = [
     width: 130,
     filterable: false,
   },
-  { field: "customer_name", headerName: "Customer Name", width: 200, filterable: false },
-  { field: "address", headerName: "Address", width: 220, filterable: false },
-  { field: "region", headerName: "Region", width: 140, ...filterableColumnProps() },
-  { field: "territory", headerName: "Territory", width: 140, ...filterableColumnProps() },
-  { field: "main_contact", headerName: "Main Contact", width: 160, filterable: false },
-  { field: "contact_number", headerName: "Contact Number", width: 150, filterable: false },
-  { field: "email", headerName: "Email", width: 200, filterable: false },
-  { field: "location", headerName: "Location", width: 160, filterable: false },
-  { field: "fnb_or_yps", headerName: "F&B / YPS", width: 120, ...filterableColumnProps() },
-  { field: "psa_status", headerName: "PSA Status", width: 150, ...filterableColumnProps() },
-  { field: "psa_contract", headerName: "PSA Contract", width: 160, filterable: false },
+  {
+    field: "customer_name",
+    headerName: "Customer Name",
+    width: 200,
+    filterable: false,
+    ...editableColumnProps(),
+  },
+  { field: "address", headerName: "Address", width: 220, filterable: false, ...editableColumnProps() },
+  { field: "region", headerName: "Region", width: 140, ...filterableColumnProps(), ...editableColumnProps() },
+  {
+    field: "territory",
+    headerName: "Territory",
+    width: 140,
+    ...filterableColumnProps(),
+    ...editableColumnProps(),
+  },
+  {
+    field: "main_contact",
+    headerName: "Main Contact",
+    width: 160,
+    filterable: false,
+    ...editableColumnProps(),
+  },
+  {
+    field: "contact_number",
+    headerName: "Contact Number",
+    width: 150,
+    filterable: false,
+    ...editableColumnProps(),
+  },
+  { field: "email", headerName: "Email", width: 200, filterable: false, ...editableColumnProps() },
+  { field: "location", headerName: "Location", width: 160, filterable: false, ...editableColumnProps() },
+  {
+    field: "fnb_or_yps",
+    headerName: "F&B / YPS",
+    width: 120,
+    ...filterableColumnProps(),
+    ...editableColumnProps(),
+  },
+  {
+    field: "psa_status",
+    headerName: "PSA Status",
+    width: 150,
+    ...filterableColumnProps(),
+    ...editableColumnProps(),
+  },
+  {
+    field: "psa_contract",
+    headerName: "PSA Contract",
+    width: 160,
+    filterable: false,
+    ...editableColumnProps(),
+  },
   {
     field: "psa_end_date",
     headerName: "PSA End Date",
@@ -148,28 +309,63 @@ const columns: GridColDef<EquipmentListItem>[] = [
     width: 140,
     filterable: false,
     valueGetter: (value) => toDate(value),
+    valueSetter: dateValueSetter("psa_end_date"),
+    ...editableColumnProps(),
   },
-  { field: "sales_rep", headerName: "Sales Rep", width: 150, filterable: false },
-  { field: "ops_team", headerName: "Ops Team", width: 150, filterable: false },
-  { field: "equip_tag", headerName: "Equip Tag", width: 140, filterable: false },
-  { field: "model", headerName: "Model", width: 160, filterable: false },
+  { field: "sales_rep", headerName: "Sales Rep", width: 150, filterable: false, ...editableColumnProps() },
+  { field: "ops_team", headerName: "Ops Team", width: 150, filterable: false, ...editableColumnProps() },
+  { field: "equip_tag", headerName: "Equip Tag", width: 140, filterable: false, ...editableColumnProps() },
+  { field: "model", headerName: "Model", width: 160, filterable: false, ...editableColumnProps() },
   {
     field: "compressor_type",
     headerName: "Compressor Type",
     width: 160,
     ...filterableColumnProps(),
+    ...editableColumnProps(),
   },
-  { field: "serial_number", headerName: "Serial Number", width: 160, filterable: false },
-  { field: "brand", headerName: "Brand", width: 140, ...filterableColumnProps() },
-  { field: "motor_make_model", headerName: "Motor Make/Model", width: 180, filterable: false },
-  { field: "motor_serial", headerName: "Motor Serial", width: 150, filterable: false },
-  { field: "motor_kw", headerName: "Motor KW", type: "number", width: 110, filterable: false },
+  {
+    field: "serial_number",
+    headerName: "Serial Number",
+    width: 160,
+    filterable: false,
+    ...editableColumnProps(),
+  },
+  {
+    field: "brand",
+    headerName: "Brand",
+    width: 140,
+    ...filterableColumnProps(),
+    ...editableColumnProps(),
+  },
+  {
+    field: "motor_make_model",
+    headerName: "Motor Make/Model",
+    width: 180,
+    filterable: false,
+    ...editableColumnProps(),
+  },
+  {
+    field: "motor_serial",
+    headerName: "Motor Serial",
+    width: 150,
+    filterable: false,
+    ...editableColumnProps(),
+  },
+  {
+    field: "motor_kw",
+    headerName: "Motor KW",
+    type: "number",
+    width: 110,
+    filterable: false,
+    ...editableColumnProps(),
+  },
   {
     field: "year_installed",
     headerName: "Year Installed",
     type: "number",
     width: 130,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "year_commissioned",
@@ -177,6 +373,7 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "number",
     width: 160,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "running_hours",
@@ -184,6 +381,7 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "number",
     width: 140,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "last_service_date",
@@ -192,41 +390,72 @@ const columns: GridColDef<EquipmentListItem>[] = [
     width: 160,
     filterable: false,
     valueGetter: (value) => toDate(value),
+    valueSetter: dateValueSetter("last_service_date"),
+    ...editableColumnProps(),
   },
-  { field: "comments", headerName: "Comments", width: 220, filterable: false },
+  { field: "comments", headerName: "Comments", width: 220, filterable: false, ...editableColumnProps() },
   {
     field: "area_classification",
     headerName: "Area Classification",
     width: 170,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "equipment_sales_person",
     headerName: "Equipment Sales Person",
     width: 190,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "controller_type",
     headerName: "Controller Type",
     width: 150,
     ...filterableColumnProps(),
+    ...editableColumnProps(),
   },
-  { field: "oil_type", headerName: "Oil Type", width: 130, ...filterableColumnProps() },
-  { field: "oil_charge", headerName: "Oil Charge", width: 130, filterable: false },
-  { field: "ref_type", headerName: "Ref Type", width: 130, ...filterableColumnProps() },
-  { field: "ref_charge", headerName: "Ref Charge", width: 130, filterable: false },
+  {
+    field: "oil_type",
+    headerName: "Oil Type",
+    width: 130,
+    ...filterableColumnProps(),
+    ...editableColumnProps(),
+  },
+  {
+    field: "oil_charge",
+    headerName: "Oil Charge",
+    width: 130,
+    filterable: false,
+    ...editableColumnProps(),
+  },
+  {
+    field: "ref_type",
+    headerName: "Ref Type",
+    width: 130,
+    ...filterableColumnProps(),
+    ...editableColumnProps(),
+  },
+  {
+    field: "ref_charge",
+    headerName: "Ref Charge",
+    width: 130,
+    filterable: false,
+    ...editableColumnProps(),
+  },
   {
     field: "detailed_comments",
     headerName: "Detailed Comments",
     width: 220,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "third_party_compressor_model",
     headerName: "3rd Party Compressor Model",
     width: 210,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "third_party_run_hours",
@@ -234,24 +463,28 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "number",
     width: 170,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "third_party_psa_contract",
     headerName: "3rd Party PSA Contract",
     width: 190,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "condenser_make_model",
     headerName: "Condenser Make/Model",
     width: 190,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "ammonia_pump_make_model",
     headerName: "Ammonia Pump Make/Model",
     width: 210,
     filterable: false,
+    ...editableColumnProps(),
   },
   {
     field: "created_at",
@@ -404,6 +637,28 @@ export function EquipmentGrid() {
     setPaginationModel((prev) => (prev.page === 0 ? prev : { ...prev, page: 0 }));
   }, []);
 
+  // MUI X Data Grid's standard server-validated edit pattern: if this promise
+  // resolves, the resolved row becomes the committed row; if it rejects, the
+  // grid automatically reverts the cell to its previous value and calls
+  // onProcessRowUpdateError below. Known limitation: this only updates the one
+  // edited row in local grid state. If a customer-level field (e.g. region) is
+  // edited and that customer has other equipment rows currently loaded, those
+  // other rows won't reflect the change until the next fetch (pagination/
+  // filter/search change or reload) — acceptable for v1, not worth the
+  // complexity of scanning/patching every row sharing customer_id client-side.
+  const handleProcessRowUpdate = useCallback(
+    async (newRow: EquipmentListItem, oldRow: EquipmentListItem) => {
+      const updated = await updateEquipmentRow(newRow, oldRow);
+      setRows((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+      return updated;
+    },
+    [],
+  );
+
+  const handleProcessRowUpdateError = useCallback((err: unknown) => {
+    setError(err instanceof Error ? err.message : "Failed to update equipment.");
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -483,6 +738,8 @@ export function EquipmentGrid() {
           onFilterModelChange={handleFilterModelChange}
           sortModel={sortModel}
           onSortModelChange={handleSortModelChange}
+          processRowUpdate={handleProcessRowUpdate}
+          onProcessRowUpdateError={handleProcessRowUpdateError}
           pageSizeOptions={[25, 50, 100]}
           disableRowSelectionOnClick
           slots={{ pagination: CustomPagination }}

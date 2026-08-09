@@ -1,0 +1,207 @@
+openapi: 3.1.0
+info:
+  title: Update Equipment
+  version: 1.0.0
+  description: >
+    Partial update to a single equipment row. Since the grid denormalizes
+    each equipment record's customer fields onto the same row (matching the
+    source spreadsheet's flat view), this endpoint accepts edits to either
+    side transparently — a customer-level field (e.g. region) updates the
+    related Customer record, an equipment-level field updates the
+    EquipmentRecord itself. This mirrors editing a cell in the original
+    Excel sheet, where the distinction between "customer" and "equipment"
+    columns was never visible to the person editing.
+
+paths:
+  /api/equipment/{id}:
+    patch:
+      operationId: updateEquipment
+      summary: Update one or more fields on an equipment row
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEquipmentRequest"
+            example:
+              region: "Jakarta"
+              motor_kw: 7.5
+      responses:
+        "200":
+          description: The updated row, in the same shape as a GET /api/equipment list item.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "list_equipment.yaml#/components/schemas/EquipmentListItem"
+        "400":
+          description: >
+            Invalid field value, unknown field, or an attempt to blank a
+            required field (see SPEC.md's Required Fields list — enforced
+            here even though the DB column itself is nullable).
+          $ref: "../_shared/error.yaml#/components/responses/BadRequest"
+        "404":
+          description: No equipment record exists with the given id.
+          $ref: "../_shared/error.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
+
+components:
+  schemas:
+    UpdateEquipmentRequest:
+      type: object
+      description: >
+        Every property is optional (PATCH semantics — only sent fields are
+        changed). id/customer_id/customer_no/created_at/updated_at are not
+        included here; they're system-managed and not editable. Required
+        fields (per SPEC.md) may not be set to null or an empty string —
+        if you don't intend to change a required field, omit it rather
+        than sending its current value.
+      properties:
+        customer_name:
+          type: string
+          description: Required field — rejected if blank.
+        address:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        region:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        territory:
+          type: string
+          nullable: true
+        main_contact:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        contact_number:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        fnb_or_yps:
+          type: string
+          nullable: true
+        psa_status:
+          type: string
+          nullable: true
+        psa_contract:
+          type: string
+          nullable: true
+        psa_end_date:
+          type: string
+          format: date-time
+          nullable: true
+        sales_rep:
+          type: string
+          nullable: true
+        ops_team:
+          type: string
+          nullable: true
+        equip_tag:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        model:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        compressor_type:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        serial_number:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        brand:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        motor_make_model:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        motor_serial:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        motor_kw:
+          type: number
+          nullable: true
+          description: Required field — rejected if null.
+        year_installed:
+          type: integer
+          format: int32
+          nullable: true
+        year_commissioned:
+          type: integer
+          format: int32
+          nullable: true
+        running_hours:
+          type: number
+          nullable: true
+        last_service_date:
+          type: string
+          format: date-time
+          nullable: true
+        comments:
+          type: string
+          nullable: true
+        area_classification:
+          type: string
+          nullable: true
+        equipment_sales_person:
+          type: string
+          nullable: true
+        controller_type:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        oil_type:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        oil_charge:
+          type: string
+          nullable: true
+        ref_type:
+          type: string
+          nullable: true
+          description: Required field — rejected if null/blank.
+        ref_charge:
+          type: string
+          nullable: true
+        detailed_comments:
+          type: string
+          nullable: true
+        third_party_compressor_model:
+          type: string
+          nullable: true
+        third_party_run_hours:
+          type: number
+          nullable: true
+        third_party_psa_contract:
+          type: string
+          nullable: true
+        condenser_make_model:
+          type: string
+          nullable: true
+        ammonia_pump_make_model:
+          type: string
+          nullable: true
