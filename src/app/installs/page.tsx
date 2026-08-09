@@ -1,14 +1,13 @@
 import { Container, Typography } from "@mui/material";
+import { EquipmentGrid } from "@/components/installs/EquipmentGrid";
 
 export default function InstallsPage() {
   return (
-    <Container sx={{ py: 4 }}>
+    <Container maxWidth={false} sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Install Base
       </Typography>
-      <Typography color="text.secondary">
-        The searchable, editable grid lands in a later task.
-      </Typography>
+      <EquipmentGrid />
     </Container>
   );
 }
