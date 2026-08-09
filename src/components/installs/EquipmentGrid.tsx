@@ -10,9 +10,14 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControl,
   IconButton,
+  MenuItem,
   Pagination,
+  Select,
+  Stack,
   TextField,
+  Typography,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
@@ -605,6 +610,7 @@ const columnGroupingModel: GridColumnGroupingModel = [
 ];
 
 const DEFAULT_PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const SEARCH_DEBOUNCE_MS = 300;
 
 export function EquipmentGrid() {
@@ -670,20 +676,50 @@ export function EquipmentGrid() {
 
   // Controlled/server-mode pagination doesn't get page-number or first/last buttons from the
   // grid's default footer — build one from our own paginationModel state instead of reaching
-  // into the grid's internal API.
+  // into the grid's internal API. Overriding the whole `pagination` slot also drops the
+  // default footer's rows-per-page selector and "X-Y of Z" range text, so those are
+  // reimplemented here too rather than lost.
   function CustomPagination() {
+    const rangeStart = rowCount === 0 ? 0 : paginationModel.page * paginationModel.pageSize + 1;
+    const rangeEnd = Math.min((paginationModel.page + 1) * paginationModel.pageSize, rowCount);
+
     return (
-      <Pagination
-        color="primary"
-        count={pageCount}
-        page={paginationModel.page + 1}
-        onChange={(_event, value) =>
-          setPaginationModel((prev) => ({ ...prev, page: value - 1 }))
-        }
-        showFirstButton
-        showLastButton
-        size="small"
-      />
+      <Stack direction="row" spacing={3} sx={{ alignItems: "center", px: 1 }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            Rows per page:
+          </Typography>
+          <FormControl size="small" variant="standard">
+            <Select
+              value={paginationModel.pageSize}
+              onChange={(event) =>
+                setPaginationModel({ page: 0, pageSize: Number(event.target.value) })
+              }
+              inputProps={{ "aria-label": "Rows per page" }}
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <MenuItem key={size} value={size}>
+                  {size}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
+        <Typography variant="body2" color="text.secondary">
+          {rangeStart}–{rangeEnd} of {rowCount}
+        </Typography>
+        <Pagination
+          color="primary"
+          count={pageCount}
+          page={paginationModel.page + 1}
+          onChange={(_event, value) =>
+            setPaginationModel((prev) => ({ ...prev, page: value - 1 }))
+          }
+          showFirstButton
+          showLastButton
+          size="small"
+        />
+      </Stack>
     );
   }
 
@@ -810,7 +846,7 @@ export function EquipmentGrid() {
           onSortModelChange={handleSortModelChange}
           processRowUpdate={handleProcessRowUpdate}
           onProcessRowUpdateError={handleProcessRowUpdateError}
-          pageSizeOptions={[25, 50, 100]}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
           disableRowSelectionOnClick
           slots={{ pagination: CustomPagination }}
           initialState={{

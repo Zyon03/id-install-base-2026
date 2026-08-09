@@ -167,6 +167,40 @@ describe("EquipmentGrid", () => {
     });
   });
 
+  it("shows the rows-per-page selector and the current range/total text", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => buildResponse({ pagination: { total_items: 422, total_pages: 9 } }),
+    } as Response);
+
+    render(<EquipmentGrid />);
+    await screen.findByText("Acme Testing Co");
+
+    expect(screen.getByText(/rows per page/i)).toBeInTheDocument();
+    expect(screen.getByText("1–50 of 422")).toBeInTheDocument();
+  });
+
+  it("changing rows-per-page updates page_size and resets to page 1", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => buildResponse({ pagination: { total_items: 422, total_pages: 9 } }),
+    } as Response);
+
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+    await screen.findByText("Acme Testing Co");
+
+    await user.click(screen.getByLabelText(/rows per page/i));
+    await user.click(await screen.findByRole("option", { name: "100" }));
+
+    await waitFor(() => {
+      const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1);
+      const requestUrl = new URL(lastCall![0] as string, "http://localhost");
+      expect(requestUrl.searchParams.get("page_size")).toBe("100");
+      expect(requestUrl.searchParams.get("page")).toBe("1");
+    });
+  });
+
   it("re-fetches with sort_by/sort_order query params when a column is sorted", async () => {
     const user = userEvent.setup();
     render(<EquipmentGrid />);
