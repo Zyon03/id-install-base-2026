@@ -118,7 +118,7 @@ picks the next unchecked task from here.
   - Files: `src/app/api/customers/route.ts`, `src/app/api/equipment/route.ts`
   - Size: M
 
-- [ ] Task 15: Implement `/new` form page
+- [x] Task 15: Implement `/new` form page
   - Acceptance: `/gen-feature` (frontend) builds the form: MUI Autocomplete for existing customers backed by search, inline "create new customer" path, equipment fields with 15 required fields marked/validated client-side to match the server contract, submit posts to `/api/equipment`
   - Verify: submitting with a new customer + full required fields creates a record visible immediately on `/installs`; missing a required field is blocked with a clear error
   - Dependencies: Task 14

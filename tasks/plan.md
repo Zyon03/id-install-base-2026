@@ -55,7 +55,7 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Task 12: Contract — `GET/POST /api/customers`
 - [x] Task 13: Contract — `POST /api/equipment`
 - [x] Task 14: Implement customer + create-equipment backend
-- [ ] Task 15: Implement `/new` form page
+- [x] Task 15: Implement `/new` form page
 
 ### Checkpoint: Create flow
 - [ ] A brand-new install can be entered on `/new` and immediately appears on `/installs`
