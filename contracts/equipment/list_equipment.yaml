@@ -1,0 +1,334 @@
+openapi: 3.1.0
+info:
+  title: List Equipment
+  version: 1.0.0
+  description: >
+    Paginated, searchable, filterable list of equipment records (with their
+    customer's data denormalized onto each row, matching the source
+    spreadsheet's flat view). Backs the /installs grid, which runs MUI X Data
+    Grid in server-side pagination/filter mode — the grid never loads the
+    full ~422-row dataset client-side.
+
+paths:
+  /api/equipment:
+    get:
+      operationId: listEquipment
+      summary: List equipment records
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: search
+          in: query
+          required: false
+          description: >
+            Free-text, case-insensitive search across customer name, address,
+            equip_tag, model, and serial_number.
+          schema:
+            type: string
+        - name: region
+          in: query
+          required: false
+          description: Exact-match filter on the customer's region.
+          schema:
+            type: string
+        - name: territory
+          in: query
+          required: false
+          description: Exact-match filter on the customer's territory.
+          schema:
+            type: string
+        - name: brand
+          in: query
+          required: false
+          description: Exact-match filter on equipment brand (manufacturer).
+          schema:
+            type: string
+        - name: compressor_type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: fnb_or_yps
+          in: query
+          required: false
+          description: Exact-match filter on the customer's F&B / YPS classification.
+          schema:
+            type: string
+        - name: psa_status
+          in: query
+          required: false
+          description: Exact-match filter on the customer's PSA contract status.
+          schema:
+            type: string
+        - name: controller_type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: oil_type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ref_type
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated equipment list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [equipment, pagination]
+                    properties:
+                      equipment:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/EquipmentListItem"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+              example:
+                data:
+                  equipment:
+                    - id: "clx1a2b3c4d5e6f7g8h9i0j1"
+                      customer_id: "clx0000000000000000001"
+                      customer_no: 1
+                      customer_name: "Acme Testing Co"
+                      address: "1 Fake Street"
+                      region: "Testville"
+                      territory: "Testville"
+                      main_contact: "Ms. Example"
+                      contact_number: null
+                      email: null
+                      location: null
+                      fnb_or_yps: "F&B"
+                      psa_status: "No PSA"
+                      psa_contract: null
+                      psa_end_date: null
+                      sales_rep: null
+                      ops_team: null
+                      equip_tag: null
+                      model: "Model A"
+                      compressor_type: null
+                      serial_number: "SN-001"
+                      brand: "Frick"
+                      motor_make_model: null
+                      motor_serial: null
+                      motor_kw: null
+                      year_installed: null
+                      year_commissioned: null
+                      running_hours: null
+                      last_service_date: null
+                      comments: null
+                      area_classification: null
+                      equipment_sales_person: null
+                      controller_type: "Quantum LX"
+                      oil_type: null
+                      oil_charge: null
+                      ref_type: null
+                      ref_charge: null
+                      detailed_comments: null
+                      third_party_compressor_model: null
+                      third_party_run_hours: null
+                      third_party_psa_contract: null
+                      condenser_make_model: null
+                      ammonia_pump_make_model: null
+                      created_at: "2026-08-09T10:20:54.000Z"
+                      updated_at: "2026-08-09T10:20:54.000Z"
+                  pagination:
+                    page: 1
+                    page_size: 50
+                    total_items: 422
+                    total_pages: 9
+        "400":
+          $ref: "../_shared/error.yaml#/components/responses/BadRequest"
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
+
+components:
+  schemas:
+    Pagination:
+      type: object
+      required: [page, page_size, total_items, total_pages]
+      properties:
+        page:
+          type: integer
+          format: int32
+        page_size:
+          type: integer
+          format: int32
+        total_items:
+          type: integer
+          format: int32
+        total_pages:
+          type: integer
+          format: int32
+
+    EquipmentListItem:
+      type: object
+      description: >
+        One equipment record with its customer's fields denormalized onto
+        the same row. All fields are nullable except id/customer_id/
+        customer_name, since the historical dataset is sparse (see
+        SPEC.md's Required Fields note) — required-ness is enforced on
+        create/update, not on read.
+      required: [id, customer_id, customer_no, customer_name]
+      properties:
+        id:
+          type: string
+        customer_id:
+          type: string
+        customer_no:
+          type: integer
+          format: int32
+        customer_name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        territory:
+          type: string
+          nullable: true
+        main_contact:
+          type: string
+          nullable: true
+        contact_number:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        fnb_or_yps:
+          type: string
+          nullable: true
+        psa_status:
+          type: string
+          nullable: true
+        psa_contract:
+          type: string
+          nullable: true
+        psa_end_date:
+          type: string
+          format: date-time
+          nullable: true
+        sales_rep:
+          type: string
+          nullable: true
+        ops_team:
+          type: string
+          nullable: true
+        equip_tag:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        compressor_type:
+          type: string
+          nullable: true
+        serial_number:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        motor_make_model:
+          type: string
+          nullable: true
+        motor_serial:
+          type: string
+          nullable: true
+        motor_kw:
+          type: number
+          nullable: true
+        year_installed:
+          type: integer
+          format: int32
+          nullable: true
+        year_commissioned:
+          type: integer
+          format: int32
+          nullable: true
+        running_hours:
+          type: number
+          nullable: true
+        last_service_date:
+          type: string
+          format: date-time
+          nullable: true
+        comments:
+          type: string
+          nullable: true
+        area_classification:
+          type: string
+          nullable: true
+        equipment_sales_person:
+          type: string
+          nullable: true
+        controller_type:
+          type: string
+          nullable: true
+        oil_type:
+          type: string
+          nullable: true
+        oil_charge:
+          type: string
+          nullable: true
+        ref_type:
+          type: string
+          nullable: true
+        ref_charge:
+          type: string
+          nullable: true
+        detailed_comments:
+          type: string
+          nullable: true
+        third_party_compressor_model:
+          type: string
+          nullable: true
+        third_party_run_hours:
+          type: number
+          nullable: true
+        third_party_psa_contract:
+          type: string
+          nullable: true
+        condenser_make_model:
+          type: string
+          nullable: true
+        ammonia_pump_make_model:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
