@@ -26,7 +26,7 @@ picks the next unchecked task from here.
   - Files: `src/lib/xlsx.ts`, `tests/unit/xlsx.test.ts`
   - Size: M
 
-- [ ] Task 4: Seed script
+- [x] Task 4: Seed script
   - Acceptance: `prisma/seed.ts` reads `"ID install base 2026 (higlighted ).xlsx"`, uses `lib/xlsx.ts`, upserts ~472 equipment records under their customers
   - Verify: `npx prisma db seed` completes with no errors; row counts match the source sheet's non-empty data rows
   - Dependencies: Task 3

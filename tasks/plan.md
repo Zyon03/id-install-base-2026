@@ -29,6 +29,7 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Task 1: Scaffold the Next.js app
 - [x] Task 2: Prisma schema + Neon Postgres + first migration
 - [x] Task 3: Excel column-mapping library
+- [x] Task 4: Seed script
 - [ ] Task 2: Prisma schema + Neon Postgres + first migration
 - [ ] Task 3: Excel column-mapping library
 - [ ] Task 4: Seed script
