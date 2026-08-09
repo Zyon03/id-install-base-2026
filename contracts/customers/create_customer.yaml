@@ -1,0 +1,166 @@
+openapi: 3.1.0
+info:
+  title: Create Customer
+  version: 1.0.0
+  description: >
+    Creates a new customer. Used by the /new form when the person entering
+    an install doesn't find an existing customer via search — the returned
+    id is then used in a follow-up POST /api/equipment call (see
+    ../equipment/create_equipment.yaml) to attach the new equipment record.
+    These are two separate requests, not a nested create — see SPEC.md's
+    Contract-First Workflow notes / tasks/plan.md's Task 12 decision log
+    for why.
+
+paths:
+  /api/customers:
+    post:
+      operationId: createCustomer
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+            example:
+              name: "Acme Testing Co"
+              address: "1 Fake Street"
+              region: "Testville"
+              main_contact: "Ms. Example"
+      responses:
+        "201":
+          description: The newly created customer.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CustomerItem"
+        "400":
+          description: Invalid field value, unknown field, or a missing/blank required field.
+          $ref: "../_shared/error.yaml#/components/responses/BadRequest"
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
+
+components:
+  schemas:
+    CreateCustomerRequest:
+      type: object
+      description: >
+        `name`, `address`, `region`, `main_contact` are required (per
+        SPEC.md's Required Fields list) — every other property is optional.
+        `no` is not included: it's auto-generated, not client-supplied.
+      required: [name, address, region, main_contact]
+      properties:
+        name:
+          type: string
+        bp_number:
+          type: string
+          nullable: true
+        unique_identifier:
+          type: string
+          nullable: true
+        address:
+          type: string
+        region:
+          type: string
+        territory:
+          type: string
+          nullable: true
+        main_contact:
+          type: string
+        contact_number:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        fnb_or_yps:
+          type: string
+          nullable: true
+        psa_status:
+          type: string
+          nullable: true
+        psa_contract:
+          type: string
+          nullable: true
+        psa_end_date:
+          type: string
+          format: date-time
+          nullable: true
+        sales_rep:
+          type: string
+          nullable: true
+        ops_team:
+          type: string
+          nullable: true
+
+    CustomerItem:
+      type: object
+      description: The full customer record, as returned after creation.
+      required: [id, no, name]
+      properties:
+        id:
+          type: string
+        no:
+          type: integer
+          format: int32
+        name:
+          type: string
+        bp_number:
+          type: string
+          nullable: true
+        unique_identifier:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        territory:
+          type: string
+          nullable: true
+        main_contact:
+          type: string
+          nullable: true
+        contact_number:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        fnb_or_yps:
+          type: string
+          nullable: true
+        psa_status:
+          type: string
+          nullable: true
+        psa_contract:
+          type: string
+          nullable: true
+        psa_end_date:
+          type: string
+          format: date-time
+          nullable: true
+        sales_rep:
+          type: string
+          nullable: true
+        ops_team:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

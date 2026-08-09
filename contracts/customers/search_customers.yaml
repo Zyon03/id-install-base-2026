@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: Search Customers
+  version: 1.0.0
+  description: >
+    Search-limited customer list backing the /new form's "pick an existing
+    customer" autocomplete. Deliberately not paginated like GET
+    /api/equipment — this returns a small capped result set for a live
+    search-as-you-type dropdown, not a full browsable list.
+
+paths:
+  /api/customers:
+    get:
+      operationId: searchCustomers
+      summary: Search customers by name/address, for autocomplete
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: >
+            Free-text, case-insensitive search across customer name and
+            address. Omitted or empty returns the first `limit` customers
+            (ordered by name) rather than an error — lets the autocomplete
+            show some initial options before the user types anything.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: A capped list of matching customers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [customers]
+                    properties:
+                      customers:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CustomerSummary"
+              example:
+                data:
+                  customers:
+                    - id: "clx0000000000000000001"
+                      no: 1
+                      name: "Acme Testing Co"
+                      address: "1 Fake Street"
+                      region: "Testville"
+                      main_contact: "Ms. Example"
+        "400":
+          $ref: "../_shared/error.yaml#/components/responses/BadRequest"
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
+
+components:
+  schemas:
+    CustomerSummary:
+      type: object
+      description: >
+        A lightweight subset of Customer fields — just enough to
+        disambiguate similar names in an autocomplete dropdown (e.g. "Acme
+        Testing Co — 1 Fake Street, Testville"). Not the full customer
+        record; see create_customer.yaml's CustomerItem for that.
+      required: [id, no, name]
+      properties:
+        id:
+          type: string
+        no:
+          type: integer
+          format: int32
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        main_contact:
+          type: string
+          nullable: true
