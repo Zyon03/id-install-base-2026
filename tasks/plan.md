@@ -49,7 +49,7 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 ### Checkpoint: View/Edit/Delete
 - [x] Full CRUD-minus-create works end-to-end against real Postgres data on `/installs`
 - [x] All new route handlers and grid interactions have passing tests
-- [ ] Review with human before proceeding
+- [x] Review with human before proceeding
 
 ### Phase 3: New Entry form
 - [ ] Task 12: Contract — `GET/POST /api/customers`
