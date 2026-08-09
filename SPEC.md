@@ -300,7 +300,12 @@ non-component file names. API route handlers validate input with `zod` before to
 
 - `/new` submissions go live immediately — no review/approval step.
 - The original sheet's red/orange "flagged" rows are **not** rebuilt as a status field for v1.
-- MUI X Data Grid **Community** (not Pro) — no column grouping/pinning for now.
+- MUI X Data Grid **Community** (not Pro). Correction from the original decision: column
+  *grouping* (`columnGroupingModel`, grouped header rows) turned out to be a genuine
+  Community-tier feature, not Pro-gated — used in `/installs` to reproduce the source sheet's
+  5 section headers (Contact Information, Internal Information, Equipment, Detailed
+  Information, 3rd Party Equipment). Column *pinning* is still Pro-only and remains out of
+  scope.
 - Backend list endpoints are server-side paginated (see API Design Notes) to keep the grid
   fast as the dataset grows.
 - Tailwind CSS added alongside MUI for responsive/mobile-friendly layout.

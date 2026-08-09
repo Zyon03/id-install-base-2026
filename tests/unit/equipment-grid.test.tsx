@@ -58,7 +58,12 @@ const EXAMPLE_ITEM: EquipmentListItem = {
   updated_at: "2026-08-09T10:20:54.000Z",
 };
 
-function buildResponse(overrides?: Partial<{ equipment: EquipmentListItem[] }>) {
+function buildResponse(
+  overrides?: Partial<{
+    equipment: EquipmentListItem[];
+    pagination: Partial<{ page: number; page_size: number; total_items: number; total_pages: number }>;
+  }>,
+) {
   return {
     data: {
       equipment: overrides?.equipment ?? [EXAMPLE_ITEM],
@@ -67,6 +72,7 @@ function buildResponse(overrides?: Partial<{ equipment: EquipmentListItem[] }>) 
         page_size: 50,
         total_items: 1,
         total_pages: 1,
+        ...overrides?.pagination,
       },
     },
   };
@@ -120,6 +126,40 @@ describe("EquipmentGrid", () => {
     const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1);
     const requestUrl = new URL(lastCall![0] as string, "http://localhost");
     expect(requestUrl.searchParams.get("search")).toBe("Acme");
+  });
+
+  it("groups columns under the source sheet's section headers", async () => {
+    render(<EquipmentGrid />);
+
+    await screen.findByText("Acme Testing Co");
+
+    expect(screen.getByText("Contact Information")).toBeInTheDocument();
+    expect(screen.getByText("Internal Information")).toBeInTheDocument();
+    expect(screen.getByText("Equipment")).toBeInTheDocument();
+    expect(screen.getByText("Detailed Information")).toBeInTheDocument();
+    expect(screen.getByText("3rd Party Equipment")).toBeInTheDocument();
+  });
+
+  it("renders page-number and first/last pagination controls, and jumping to a page re-fetches it", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => buildResponse({ pagination: { total_items: 500, total_pages: 10 } }),
+    } as Response);
+
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+    await screen.findByText("Acme Testing Co");
+
+    expect(screen.getByLabelText(/go to first page/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/go to last page/i)).toBeInTheDocument();
+    const page3Button = screen.getByRole("button", { name: /go to page 3/i });
+    await user.click(page3Button);
+
+    await waitFor(() => {
+      const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1);
+      const requestUrl = new URL(lastCall![0] as string, "http://localhost");
+      expect(requestUrl.searchParams.get("page")).toBe("3");
+    });
   });
 
   it("shows an error alert when the fetch fails", async () => {

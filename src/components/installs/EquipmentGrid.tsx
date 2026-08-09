@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, TextField } from "@mui/material";
+import { Alert, Box, Pagination, TextField } from "@mui/material";
 import {
   DataGrid,
   getGridStringOperators,
   type GridColDef,
+  type GridColumnGroupingModel,
   type GridFilterModel,
   type GridPaginationModel,
 } from "@mui/x-data-grid";
@@ -287,6 +288,81 @@ const columns: GridColDef<EquipmentListItem>[] = [
   },
 ];
 
+// Mirrors the source sheet's 5 section groups exactly (see COLUMNS in
+// src/lib/xlsx.ts, the source of truth for this grouping). `id`/`customer_id`/
+// `created_at`/`updated_at` are our own added metadata, not part of the
+// original sheet, so they're left ungrouped (and hidden by default below).
+const columnGroupingModel: GridColumnGroupingModel = [
+  {
+    groupId: "contact_information",
+    headerName: "Contact Information",
+    children: [
+      { field: "customer_no" },
+      { field: "customer_name" },
+      { field: "address" },
+      { field: "region" },
+      { field: "territory" },
+      { field: "main_contact" },
+      { field: "contact_number" },
+      { field: "email" },
+      { field: "location" },
+      { field: "fnb_or_yps" },
+      { field: "psa_status" },
+      { field: "psa_contract" },
+      { field: "psa_end_date" },
+    ],
+  },
+  {
+    groupId: "internal_information",
+    headerName: "Internal Information",
+    children: [{ field: "sales_rep" }, { field: "ops_team" }],
+  },
+  {
+    groupId: "equipment",
+    headerName: "Equipment",
+    children: [
+      { field: "equip_tag" },
+      { field: "model" },
+      { field: "compressor_type" },
+      { field: "serial_number" },
+      { field: "brand" },
+      { field: "motor_make_model" },
+      { field: "motor_serial" },
+      { field: "motor_kw" },
+      { field: "year_installed" },
+      { field: "year_commissioned" },
+      { field: "running_hours" },
+      { field: "last_service_date" },
+      { field: "comments" },
+      { field: "area_classification" },
+      { field: "equipment_sales_person" },
+    ],
+  },
+  {
+    groupId: "detailed_information",
+    headerName: "Detailed Information",
+    children: [
+      { field: "controller_type" },
+      { field: "oil_type" },
+      { field: "oil_charge" },
+      { field: "ref_type" },
+      { field: "ref_charge" },
+      { field: "detailed_comments" },
+    ],
+  },
+  {
+    groupId: "third_party_equipment",
+    headerName: "3rd Party Equipment",
+    children: [
+      { field: "third_party_compressor_model" },
+      { field: "third_party_run_hours" },
+      { field: "third_party_psa_contract" },
+      { field: "condenser_make_model" },
+      { field: "ammonia_pump_make_model" },
+    ],
+  },
+];
+
 const DEFAULT_PAGE_SIZE = 50;
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -302,6 +378,27 @@ export function EquipmentGrid() {
   const [rowCount, setRowCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const pageCount = Math.max(1, Math.ceil(rowCount / paginationModel.pageSize));
+
+  // Controlled/server-mode pagination doesn't get page-number or first/last buttons from the
+  // grid's default footer — build one from our own paginationModel state instead of reaching
+  // into the grid's internal API.
+  function CustomPagination() {
+    return (
+      <Pagination
+        color="primary"
+        count={pageCount}
+        page={paginationModel.page + 1}
+        onChange={(_event, value) =>
+          setPaginationModel((prev) => ({ ...prev, page: value - 1 }))
+        }
+        showFirstButton
+        showLastButton
+        size="small"
+      />
+    );
+  }
 
   // Debounce the free-text search box before it drives a re-fetch, and jump back to page 1
   // so the user doesn't land on a now out-of-range page.
@@ -378,6 +475,7 @@ export function EquipmentGrid() {
         <DataGrid
           rows={rows}
           columns={columns}
+          columnGroupingModel={columnGroupingModel}
           rowCount={rowCount}
           loading={loading}
           paginationMode="server"
@@ -389,6 +487,7 @@ export function EquipmentGrid() {
           pageSizeOptions={[25, 50, 100]}
           disableColumnSorting
           disableRowSelectionOnClick
+          slots={{ pagination: CustomPagination }}
           initialState={{
             columns: {
               columnVisibilityModel: {
