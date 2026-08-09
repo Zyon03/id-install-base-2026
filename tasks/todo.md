@@ -48,14 +48,14 @@ picks the next unchecked task from here.
 
 ## Phase 2: View, Edit, Delete (Install Base grid)
 
-- [ ] Task 6: Contract — `GET /api/equipment`
+- [x] Task 6: Contract — `GET /api/equipment`
   - Acceptance: `/gen-contract` produces `contracts/equipment/list_equipment.yaml` covering pagination (`page`, `pageSize`), `search`, per-column filters, referencing the shared error envelope; confirmed by human
   - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Checkpoint (Foundation)
   - Files: `contracts/equipment/list_equipment.yaml`
   - Size: XS
 
-- [ ] Task 7: Implement list endpoint + read-only grid
+- [x] Task 7: Implement list endpoint + read-only grid
   - Acceptance: `/gen-feature` implements `GET /api/equipment` per contract (server-side pagination/search/filter via Prisma); `/installs` renders it in an MUI X Data Grid with `paginationMode`/`filterMode` = `"server"`
   - Verify: `/installs` shows real seeded data; page/search/filter round-trips to the API; `npm test` passes new route handler tests
   - Dependencies: Task 6

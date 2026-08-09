@@ -39,8 +39,8 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [ ] Review with human before proceeding
 
 ### Phase 2: View, Edit, Delete (Install Base grid)
-- [ ] Task 6: Contract — `GET /api/equipment`
-- [ ] Task 7: Implement list endpoint + read-only grid
+- [x] Task 6: Contract — `GET /api/equipment`
+- [x] Task 7: Implement list endpoint + read-only grid
 - [ ] Task 8: Contract — `PATCH /api/equipment/{id}`
 - [ ] Task 9: Implement inline edit
 - [ ] Task 10: Contract — `DELETE /api/equipment/{id}`
