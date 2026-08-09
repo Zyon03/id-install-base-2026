@@ -19,7 +19,7 @@ picks the next unchecked task from here.
   - Files: `prisma/schema.prisma`, `prisma/migrations/**`, `src/lib/prisma.ts`, `.env.example`
   - Size: S
 
-- [ ] Task 3: Excel column-mapping library
+- [x] Task 3: Excel column-mapping library
   - Acceptance: `src/lib/xlsx.ts` maps all 43 source columns ⇄ the two Prisma models in both directions; handles the sheet's grouped-header layout (rows 1–2) and blank/repeated customer cells across an equipment group
   - Verify: unit test round-trips real rows from the source `.xlsx` and asserts the mapped object matches expected values
   - Dependencies: Task 2
