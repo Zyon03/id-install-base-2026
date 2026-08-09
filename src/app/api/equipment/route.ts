@@ -3,6 +3,56 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
+// Every field on EquipmentListItem (contracts/equipment/list_equipment.yaml's
+// SortableField enum) — sorting is allowed on any of them.
+const SORTABLE_FIELDS = [
+  "id",
+  "customer_id",
+  "customer_no",
+  "customer_name",
+  "address",
+  "region",
+  "territory",
+  "main_contact",
+  "contact_number",
+  "email",
+  "location",
+  "fnb_or_yps",
+  "psa_status",
+  "psa_contract",
+  "psa_end_date",
+  "sales_rep",
+  "ops_team",
+  "equip_tag",
+  "model",
+  "compressor_type",
+  "serial_number",
+  "brand",
+  "motor_make_model",
+  "motor_serial",
+  "motor_kw",
+  "year_installed",
+  "year_commissioned",
+  "running_hours",
+  "last_service_date",
+  "comments",
+  "area_classification",
+  "equipment_sales_person",
+  "controller_type",
+  "oil_type",
+  "oil_charge",
+  "ref_type",
+  "ref_charge",
+  "detailed_comments",
+  "third_party_compressor_model",
+  "third_party_run_hours",
+  "third_party_psa_contract",
+  "condenser_make_model",
+  "ammonia_pump_make_model",
+  "created_at",
+  "updated_at",
+] as const;
+
 // Query params come in as strings off the URL — z.coerce handles page/page_size
 // numeric coercion, everything else is matched/filtered as a plain string.
 const querySchema = z.object({
@@ -18,7 +68,91 @@ const querySchema = z.object({
   controller_type: z.string().optional(),
   oil_type: z.string().optional(),
   ref_type: z.string().optional(),
+  sort_by: z.enum(SORTABLE_FIELDS).optional(),
+  sort_order: z.enum(["asc", "desc"]).default("asc"),
 });
+
+// Maps a customer-side sortable field to its Prisma Customer field name.
+const CUSTOMER_SORT_FIELDS: Partial<Record<(typeof SORTABLE_FIELDS)[number], keyof Prisma.CustomerOrderByWithRelationInput>> = {
+  customer_no: "no",
+  customer_name: "name",
+  address: "address",
+  region: "region",
+  territory: "territory",
+  main_contact: "mainContact",
+  contact_number: "contactNumber",
+  email: "email",
+  location: "location",
+  fnb_or_yps: "fnbOrYps",
+  psa_status: "psaStatus",
+  psa_contract: "psaContract",
+  psa_end_date: "psaEndDate",
+  sales_rep: "salesRep",
+  ops_team: "opsTeam",
+};
+
+// Maps every other sortable field to its Prisma EquipmentRecord field name.
+const EQUIPMENT_SORT_FIELDS: Partial<Record<(typeof SORTABLE_FIELDS)[number], keyof Prisma.EquipmentRecordOrderByWithRelationInput>> = {
+  id: "id",
+  customer_id: "customerId",
+  equip_tag: "equipTag",
+  model: "model",
+  compressor_type: "compressorType",
+  serial_number: "serialNumber",
+  brand: "brand",
+  motor_make_model: "motorMakeModel",
+  motor_serial: "motorSerial",
+  motor_kw: "motorKw",
+  year_installed: "yearInstalled",
+  year_commissioned: "yearCommissioned",
+  running_hours: "runningHours",
+  last_service_date: "lastServiceDate",
+  comments: "comments",
+  area_classification: "areaClassification",
+  equipment_sales_person: "equipmentSalesPerson",
+  controller_type: "controllerType",
+  oil_type: "oilType",
+  oil_charge: "oilCharge",
+  ref_type: "refType",
+  ref_charge: "refCharge",
+  detailed_comments: "detailedComments",
+  third_party_compressor_model: "thirdPartyCompressorModel",
+  third_party_run_hours: "thirdPartyRunHours",
+  third_party_psa_contract: "thirdPartyPsaContract",
+  condenser_make_model: "condenserMakeModel",
+  ammonia_pump_make_model: "ammoniaPumpMakeModel",
+  created_at: "createdAt",
+  updated_at: "updatedAt",
+};
+
+const DEFAULT_ORDER_BY: Prisma.EquipmentRecordOrderByWithRelationInput[] = [
+  { customer: { name: "asc" } },
+  { id: "asc" },
+];
+
+/**
+ * Always appends `id` as a secondary sort key — without a stable tiebreaker,
+ * rows sharing an equal sort value could shuffle between pages across
+ * requests, causing duplicate/missing rows as the user pages through.
+ */
+function buildOrderBy(
+  sortBy: (typeof SORTABLE_FIELDS)[number] | undefined,
+  sortOrder: "asc" | "desc"
+): Prisma.EquipmentRecordOrderByWithRelationInput[] {
+  if (!sortBy) return DEFAULT_ORDER_BY;
+
+  const customerField = CUSTOMER_SORT_FIELDS[sortBy];
+  if (customerField) {
+    return [{ customer: { [customerField]: sortOrder } }, { id: "asc" }];
+  }
+
+  const equipmentField = EQUIPMENT_SORT_FIELDS[sortBy];
+  if (equipmentField) {
+    return [{ [equipmentField]: sortOrder }, { id: "asc" }];
+  }
+
+  return DEFAULT_ORDER_BY;
+}
 
 type EquipmentWithCustomer = Prisma.EquipmentRecordGetPayload<{
   include: { customer: true };
@@ -114,6 +248,8 @@ export async function GET(request: NextRequest) {
     controller_type,
     oil_type,
     ref_type,
+    sort_by,
+    sort_order,
   } = parsed.data;
 
   try {
@@ -149,7 +285,7 @@ export async function GET(request: NextRequest) {
       prisma.equipmentRecord.findMany({
         where,
         include: { customer: true },
-        orderBy: [{ customer: { name: "asc" } }, { id: "asc" }],
+        orderBy: buildOrderBy(sort_by, sort_order),
         skip,
         take: page_size,
       }),

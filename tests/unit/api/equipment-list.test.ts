@@ -218,6 +218,56 @@ describe("GET /api/equipment", () => {
     expect(call.where[prismaField]).toBe(value);
   });
 
+  it("defaults to ordering by customer name then id when sort_by is omitted", async () => {
+    await GET(makeRequest(""));
+
+    const call = findManyMock.mock.calls[0][0];
+    expect(call.orderBy).toEqual([{ customer: { name: "asc" } }, { id: "asc" }]);
+  });
+
+  it.each([
+    ["customer_name", { customer: { name: "asc" } }],
+    ["region", { customer: { region: "asc" } }],
+    ["psa_end_date", { customer: { psaEndDate: "asc" } }],
+  ])("sorts on customer field %s via sort_by, with id as a stable tiebreaker", async (sortBy, expectedPrimary) => {
+    await GET(makeRequest(`?sort_by=${sortBy}`));
+
+    const call = findManyMock.mock.calls[0][0];
+    expect(call.orderBy).toEqual([expectedPrimary, { id: "asc" }]);
+  });
+
+  it.each([
+    ["motor_kw", { motorKw: "asc" }],
+    ["created_at", { createdAt: "asc" }],
+    ["serial_number", { serialNumber: "asc" }],
+  ])("sorts on equipment field %s via sort_by, with id as a stable tiebreaker", async (sortBy, expectedPrimary) => {
+    await GET(makeRequest(`?sort_by=${sortBy}`));
+
+    const call = findManyMock.mock.calls[0][0];
+    expect(call.orderBy).toEqual([expectedPrimary, { id: "asc" }]);
+  });
+
+  it("applies sort_order=desc to the requested sort_by field", async () => {
+    await GET(makeRequest("?sort_by=brand&sort_order=desc"));
+
+    const call = findManyMock.mock.calls[0][0];
+    expect(call.orderBy).toEqual([{ brand: "desc" }, { id: "asc" }]);
+  });
+
+  it("defaults sort_order to asc when only sort_by is given", async () => {
+    await GET(makeRequest("?sort_by=brand"));
+
+    const call = findManyMock.mock.calls[0][0];
+    expect(call.orderBy).toEqual([{ brand: "asc" }, { id: "asc" }]);
+  });
+
+  it("returns 400 for an invalid sort_by value", async () => {
+    const res = await GET(makeRequest("?sort_by=not_a_real_field"));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe("validation_error");
+  });
+
   it("returns 400 with a validation_error envelope for a non-numeric page", async () => {
     const res = await GET(makeRequest("?page=abc"));
     expect(res.status).toBe(400);

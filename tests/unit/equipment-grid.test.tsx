@@ -162,6 +162,22 @@ describe("EquipmentGrid", () => {
     });
   });
 
+  it("re-fetches with sort_by/sort_order query params when a column is sorted", async () => {
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+    await screen.findByText("Acme Testing Co");
+
+    const brandHeader = screen.getByRole("columnheader", { name: /^brand$/i });
+    await user.click(brandHeader);
+
+    await waitFor(() => {
+      const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1);
+      const requestUrl = new URL(lastCall![0] as string, "http://localhost");
+      expect(requestUrl.searchParams.get("sort_by")).toBe("brand");
+      expect(requestUrl.searchParams.get("sort_order")).toBe("asc");
+    });
+  });
+
   it("shows an error alert when the fetch fails", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,

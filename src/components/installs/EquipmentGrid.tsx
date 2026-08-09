@@ -9,6 +9,7 @@ import {
   type GridColumnGroupingModel,
   type GridFilterModel,
   type GridPaginationModel,
+  type GridSortModel,
 } from "@mui/x-data-grid";
 
 // Shape of one row, mirroring `EquipmentListItem` in
@@ -117,62 +118,58 @@ function filterableColumnProps(): Partial<GridColDef<EquipmentListItem>> {
   return { filterable: true, filterOperators: equalsOnlyOperators };
 }
 
-// All columns are non-sortable — the contract has no server-side sort, and a client-side
-// sort would misleadingly only sort the current page.
+// Every column is sortable — the contract supports server-side sort on any
+// EquipmentListItem field via sort_by/sort_order.
 const columns: GridColDef<EquipmentListItem>[] = [
-  { field: "id", headerName: "ID", width: 220, filterable: false, sortable: false },
-  { field: "customer_id", headerName: "Customer ID", width: 220, filterable: false, sortable: false },
+  { field: "id", headerName: "ID", width: 220, filterable: false },
+  { field: "customer_id", headerName: "Customer ID", width: 220, filterable: false },
   {
     field: "customer_no",
     headerName: "Customer No.",
     type: "number",
     width: 130,
     filterable: false,
-    sortable: false,
   },
-  { field: "customer_name", headerName: "Customer Name", width: 200, filterable: false, sortable: false },
-  { field: "address", headerName: "Address", width: 220, filterable: false, sortable: false },
-  { field: "region", headerName: "Region", width: 140, sortable: false, ...filterableColumnProps() },
-  { field: "territory", headerName: "Territory", width: 140, sortable: false, ...filterableColumnProps() },
-  { field: "main_contact", headerName: "Main Contact", width: 160, filterable: false, sortable: false },
-  { field: "contact_number", headerName: "Contact Number", width: 150, filterable: false, sortable: false },
-  { field: "email", headerName: "Email", width: 200, filterable: false, sortable: false },
-  { field: "location", headerName: "Location", width: 160, filterable: false, sortable: false },
-  { field: "fnb_or_yps", headerName: "F&B / YPS", width: 120, sortable: false, ...filterableColumnProps() },
-  { field: "psa_status", headerName: "PSA Status", width: 150, sortable: false, ...filterableColumnProps() },
-  { field: "psa_contract", headerName: "PSA Contract", width: 160, filterable: false, sortable: false },
+  { field: "customer_name", headerName: "Customer Name", width: 200, filterable: false },
+  { field: "address", headerName: "Address", width: 220, filterable: false },
+  { field: "region", headerName: "Region", width: 140, ...filterableColumnProps() },
+  { field: "territory", headerName: "Territory", width: 140, ...filterableColumnProps() },
+  { field: "main_contact", headerName: "Main Contact", width: 160, filterable: false },
+  { field: "contact_number", headerName: "Contact Number", width: 150, filterable: false },
+  { field: "email", headerName: "Email", width: 200, filterable: false },
+  { field: "location", headerName: "Location", width: 160, filterable: false },
+  { field: "fnb_or_yps", headerName: "F&B / YPS", width: 120, ...filterableColumnProps() },
+  { field: "psa_status", headerName: "PSA Status", width: 150, ...filterableColumnProps() },
+  { field: "psa_contract", headerName: "PSA Contract", width: 160, filterable: false },
   {
     field: "psa_end_date",
     headerName: "PSA End Date",
     type: "date",
     width: 140,
     filterable: false,
-    sortable: false,
     valueGetter: (value) => toDate(value),
   },
-  { field: "sales_rep", headerName: "Sales Rep", width: 150, filterable: false, sortable: false },
-  { field: "ops_team", headerName: "Ops Team", width: 150, filterable: false, sortable: false },
-  { field: "equip_tag", headerName: "Equip Tag", width: 140, filterable: false, sortable: false },
-  { field: "model", headerName: "Model", width: 160, filterable: false, sortable: false },
+  { field: "sales_rep", headerName: "Sales Rep", width: 150, filterable: false },
+  { field: "ops_team", headerName: "Ops Team", width: 150, filterable: false },
+  { field: "equip_tag", headerName: "Equip Tag", width: 140, filterable: false },
+  { field: "model", headerName: "Model", width: 160, filterable: false },
   {
     field: "compressor_type",
     headerName: "Compressor Type",
     width: 160,
-    sortable: false,
     ...filterableColumnProps(),
   },
-  { field: "serial_number", headerName: "Serial Number", width: 160, filterable: false, sortable: false },
-  { field: "brand", headerName: "Brand", width: 140, sortable: false, ...filterableColumnProps() },
-  { field: "motor_make_model", headerName: "Motor Make/Model", width: 180, filterable: false, sortable: false },
-  { field: "motor_serial", headerName: "Motor Serial", width: 150, filterable: false, sortable: false },
-  { field: "motor_kw", headerName: "Motor KW", type: "number", width: 110, filterable: false, sortable: false },
+  { field: "serial_number", headerName: "Serial Number", width: 160, filterable: false },
+  { field: "brand", headerName: "Brand", width: 140, ...filterableColumnProps() },
+  { field: "motor_make_model", headerName: "Motor Make/Model", width: 180, filterable: false },
+  { field: "motor_serial", headerName: "Motor Serial", width: 150, filterable: false },
+  { field: "motor_kw", headerName: "Motor KW", type: "number", width: 110, filterable: false },
   {
     field: "year_installed",
     headerName: "Year Installed",
     type: "number",
     width: 130,
     filterable: false,
-    sortable: false,
   },
   {
     field: "year_commissioned",
@@ -180,7 +177,6 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "number",
     width: 160,
     filterable: false,
-    sortable: false,
   },
   {
     field: "running_hours",
@@ -188,7 +184,6 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "number",
     width: 140,
     filterable: false,
-    sortable: false,
   },
   {
     field: "last_service_date",
@@ -196,48 +191,42 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "date",
     width: 160,
     filterable: false,
-    sortable: false,
     valueGetter: (value) => toDate(value),
   },
-  { field: "comments", headerName: "Comments", width: 220, filterable: false, sortable: false },
+  { field: "comments", headerName: "Comments", width: 220, filterable: false },
   {
     field: "area_classification",
     headerName: "Area Classification",
     width: 170,
     filterable: false,
-    sortable: false,
   },
   {
     field: "equipment_sales_person",
     headerName: "Equipment Sales Person",
     width: 190,
     filterable: false,
-    sortable: false,
   },
   {
     field: "controller_type",
     headerName: "Controller Type",
     width: 150,
-    sortable: false,
     ...filterableColumnProps(),
   },
-  { field: "oil_type", headerName: "Oil Type", width: 130, sortable: false, ...filterableColumnProps() },
-  { field: "oil_charge", headerName: "Oil Charge", width: 130, filterable: false, sortable: false },
-  { field: "ref_type", headerName: "Ref Type", width: 130, sortable: false, ...filterableColumnProps() },
-  { field: "ref_charge", headerName: "Ref Charge", width: 130, filterable: false, sortable: false },
+  { field: "oil_type", headerName: "Oil Type", width: 130, ...filterableColumnProps() },
+  { field: "oil_charge", headerName: "Oil Charge", width: 130, filterable: false },
+  { field: "ref_type", headerName: "Ref Type", width: 130, ...filterableColumnProps() },
+  { field: "ref_charge", headerName: "Ref Charge", width: 130, filterable: false },
   {
     field: "detailed_comments",
     headerName: "Detailed Comments",
     width: 220,
     filterable: false,
-    sortable: false,
   },
   {
     field: "third_party_compressor_model",
     headerName: "3rd Party Compressor Model",
     width: 210,
     filterable: false,
-    sortable: false,
   },
   {
     field: "third_party_run_hours",
@@ -245,28 +234,24 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "number",
     width: 170,
     filterable: false,
-    sortable: false,
   },
   {
     field: "third_party_psa_contract",
     headerName: "3rd Party PSA Contract",
     width: 190,
     filterable: false,
-    sortable: false,
   },
   {
     field: "condenser_make_model",
     headerName: "Condenser Make/Model",
     width: 190,
     filterable: false,
-    sortable: false,
   },
   {
     field: "ammonia_pump_make_model",
     headerName: "Ammonia Pump Make/Model",
     width: 210,
     filterable: false,
-    sortable: false,
   },
   {
     field: "created_at",
@@ -274,7 +259,6 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "dateTime",
     width: 180,
     filterable: false,
-    sortable: false,
     valueGetter: (value) => toDate(value),
   },
   {
@@ -283,7 +267,6 @@ const columns: GridColDef<EquipmentListItem>[] = [
     type: "dateTime",
     width: 180,
     filterable: false,
-    sortable: false,
     valueGetter: (value) => toDate(value),
   },
 ];
@@ -372,6 +355,7 @@ export function EquipmentGrid() {
     pageSize: DEFAULT_PAGE_SIZE,
   });
   const [filterModel, setFilterModel] = useState<GridFilterModel>({ items: [] });
+  const [sortModel, setSortModel] = useState<GridSortModel>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<EquipmentListItem[]>([]);
@@ -415,6 +399,11 @@ export function EquipmentGrid() {
     setPaginationModel((prev) => (prev.page === 0 ? prev : { ...prev, page: 0 }));
   }, []);
 
+  const handleSortModelChange = useCallback((model: GridSortModel) => {
+    setSortModel(model);
+    setPaginationModel((prev) => (prev.page === 0 ? prev : { ...prev, page: 0 }));
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -431,6 +420,13 @@ export function EquipmentGrid() {
         if (!isFilterableField(item.field)) continue;
         if (item.value === undefined || item.value === null || item.value === "") continue;
         params.set(item.field, String(item.value));
+      }
+
+      // Community edition only supports single-column sort.
+      const [sortItem] = sortModel;
+      if (sortItem?.sort) {
+        params.set("sort_by", sortItem.field);
+        params.set("sort_order", sortItem.sort);
       }
 
       try {
@@ -457,7 +453,7 @@ export function EquipmentGrid() {
     fetchEquipment();
 
     return () => controller.abort();
-  }, [paginationModel, search, filterModel]);
+  }, [paginationModel, search, filterModel, sortModel]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -480,12 +476,14 @@ export function EquipmentGrid() {
           loading={loading}
           paginationMode="server"
           filterMode="server"
+          sortingMode="server"
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           filterModel={filterModel}
           onFilterModelChange={handleFilterModelChange}
+          sortModel={sortModel}
+          onSortModelChange={handleSortModelChange}
           pageSizeOptions={[25, 50, 100]}
-          disableColumnSorting
           disableRowSelectionOnClick
           slots={{ pagination: CustomPagination }}
           initialState={{

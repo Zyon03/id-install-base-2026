@@ -1,13 +1,19 @@
 openapi: 3.1.0
 info:
   title: List Equipment
-  version: 1.0.0
+  version: 1.1.0
   description: >
-    Paginated, searchable, filterable list of equipment records (with their
-    customer's data denormalized onto each row, matching the source
-    spreadsheet's flat view). Backs the /installs grid, which runs MUI X Data
-    Grid in server-side pagination/filter mode — the grid never loads the
-    full ~422-row dataset client-side.
+    Paginated, searchable, filterable, sortable list of equipment records
+    (with their customer's data denormalized onto each row, matching the
+    source spreadsheet's flat view). Backs the /installs grid, which runs
+    MUI X Data Grid in server-side pagination/filter/sort mode — the grid
+    never loads the full ~422-row dataset client-side.
+
+    v1.1.0 adds single-column sort (sort_by/sort_order) on any field.
+    Exact-match filtering deliberately stays limited to the 9 categorical
+    fields from v1.0.0 — expanding it to free-text fields (address,
+    comments, serial numbers, etc.) wouldn't be useful since "equals"
+    rarely matches on those; the search param already covers them.
 
 paths:
   /api/equipment:
@@ -90,6 +96,22 @@ paths:
           required: false
           schema:
             type: string
+        - name: sort_by
+          in: query
+          required: false
+          description: >
+            Field to sort by — any field on EquipmentListItem. When omitted,
+            the stable default order (customer name, then id) is used.
+          schema:
+            $ref: "#/components/schemas/SortableField"
+        - name: sort_order
+          in: query
+          required: false
+          description: Only meaningful when sort_by is set.
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
       responses:
         "200":
           description: Paginated equipment list.
@@ -169,6 +191,56 @@ paths:
 
 components:
   schemas:
+    SortableField:
+      type: string
+      description: Any field on EquipmentListItem — see that schema for meanings.
+      enum:
+        - id
+        - customer_id
+        - customer_no
+        - customer_name
+        - address
+        - region
+        - territory
+        - main_contact
+        - contact_number
+        - email
+        - location
+        - fnb_or_yps
+        - psa_status
+        - psa_contract
+        - psa_end_date
+        - sales_rep
+        - ops_team
+        - equip_tag
+        - model
+        - compressor_type
+        - serial_number
+        - brand
+        - motor_make_model
+        - motor_serial
+        - motor_kw
+        - year_installed
+        - year_commissioned
+        - running_hours
+        - last_service_date
+        - comments
+        - area_classification
+        - equipment_sales_person
+        - controller_type
+        - oil_type
+        - oil_charge
+        - ref_type
+        - ref_charge
+        - detailed_comments
+        - third_party_compressor_model
+        - third_party_run_hours
+        - third_party_psa_contract
+        - condenser_make_model
+        - ammonia_pump_make_model
+        - created_at
+        - updated_at
+
     Pagination:
       type: object
       required: [page, page_size, total_items, total_pages]
