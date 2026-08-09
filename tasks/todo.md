@@ -76,14 +76,14 @@ picks the next unchecked task from here.
   - Files: `src/app/api/equipment/[id]/route.ts`, `src/components/installs/EquipmentGrid.tsx`
   - Size: M
 
-- [ ] Task 10: Contract — `DELETE /api/equipment/{id}`
+- [x] Task 10: Contract — `DELETE /api/equipment/{id}`
   - Acceptance: `/gen-contract` produces `contracts/equipment/delete_equipment.yaml`, confirmed by human
   - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Task 9
   - Files: `contracts/equipment/delete_equipment.yaml`
   - Size: XS
 
-- [ ] Task 11: Implement delete with confirmation
+- [x] Task 11: Implement delete with confirmation
   - Acceptance: `/gen-feature` implements the `DELETE` handler and adds a grid row action that opens an MUI confirm dialog before calling it
   - Verify: deleting a row removes it from grid + DB only after confirming; cancel leaves it untouched
   - Dependencies: Task 10
@@ -91,8 +91,8 @@ picks the next unchecked task from here.
   - Size: S
 
 ### Checkpoint: View/Edit/Delete
-- [ ] Full CRUD-minus-create works end-to-end against real Postgres data on `/installs`
-- [ ] All new route handlers and grid interactions have passing tests
+- [x] Full CRUD-minus-create works end-to-end against real Postgres data on `/installs`
+- [x] All new route handlers and grid interactions have passing tests
 - [ ] Review with human before proceeding
 
 ## Phase 3: New Entry form

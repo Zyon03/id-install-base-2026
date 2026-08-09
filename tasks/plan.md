@@ -43,14 +43,12 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Task 7: Implement list endpoint + read-only grid
 - [x] Task 8: Contract — `PATCH /api/equipment/{id}`
 - [x] Task 9: Implement inline edit
-- [ ] Task 8: Contract — `PATCH /api/equipment/{id}`
-- [ ] Task 9: Implement inline edit
-- [ ] Task 10: Contract — `DELETE /api/equipment/{id}`
-- [ ] Task 11: Implement delete with confirmation
+- [x] Task 10: Contract — `DELETE /api/equipment/{id}`
+- [x] Task 11: Implement delete with confirmation
 
 ### Checkpoint: View/Edit/Delete
-- [ ] Full CRUD-minus-create works end-to-end against real Postgres data on `/installs`
-- [ ] All new route handlers and grid interactions have passing tests
+- [x] Full CRUD-minus-create works end-to-end against real Postgres data on `/installs`
+- [x] All new route handlers and grid interactions have passing tests
 - [ ] Review with human before proceeding
 
 ### Phase 3: New Entry form
