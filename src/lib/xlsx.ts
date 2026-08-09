@@ -145,10 +145,19 @@ function emptyCustomer(): CustomerInput {
 
 function parseStringValue(value: ExcelJS.CellValue): string | null {
   if (value === null || value === undefined) return null;
-  if (typeof value === "object" && "richText" in value) {
-    const text = (value.richText as { text: string }[]).map((r) => r.text).join("");
-    const trimmed = text.trim();
-    return trimmed === "" ? null : trimmed;
+  if (typeof value === "object") {
+    // Hyperlinked cells (e.g. mailto: links in the Email column) come through as
+    // { text, hyperlink }, not a plain string — String(value) on this would
+    // stringify to the literal text "[object Object]".
+    if ("text" in value && typeof value.text === "string") {
+      const trimmed = value.text.trim();
+      return trimmed === "" ? null : trimmed;
+    }
+    if ("richText" in value) {
+      const text = (value.richText as { text: string }[]).map((r) => r.text).join("");
+      const trimmed = text.trim();
+      return trimmed === "" ? null : trimmed;
+    }
   }
   const s = String(value).trim();
   return s === "" ? null : s;

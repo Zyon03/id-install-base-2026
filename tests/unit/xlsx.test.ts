@@ -139,6 +139,30 @@ describe("parseInstallBaseWorkbook", () => {
     expect(groups[0].customer.psaEndDate).toBeInstanceOf(Date);
   });
 
+  it("extracts plain text from hyperlinked cells instead of stringifying the object", async () => {
+    // exceljs represents a mailto:-hyperlinked cell as { text, hyperlink }, not a plain
+    // string — the real sheet's Email column has these (e.g. row 71's
+    // Ari.Subic@simp.co.id). Naively calling String(value) on that object yields the
+    // literal text "[object Object]".
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Sheet1");
+    COLUMNS.forEach((col, i) => {
+      sheet.getRow(2).getCell(i + 1).value = col.header;
+    });
+    const customerColIndex = COLUMNS.findIndex((c) => c.header === "Customer") + 1;
+    sheet.getRow(3).getCell(customerColIndex).value = "Acme Testing Co";
+    const emailColIndex = COLUMNS.findIndex((c) => c.header === "Email") + 1;
+    sheet.getRow(3).getCell(emailColIndex).value = {
+      text: "person@example.com",
+      hyperlink: "mailto:person@example.com",
+    };
+
+    const groups = await parseInstallBaseWorkbook(Buffer.from(await workbook.xlsx.writeBuffer()));
+
+    expect(groups[0].customer.email).toBe("person@example.com");
+    expect(groups[0].customer.email).not.toContain("object Object");
+  });
+
   it("throws a descriptive error when the header row doesn't match the expected layout", async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Sheet1");
