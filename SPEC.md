@@ -52,10 +52,10 @@ model Customer {
   name              String
   bpNumber          String?
   uniqueIdentifier  String?
-  address           String
-  region            String
+  address           String?  // required on /new form; nullable here — see Required Fields note
+  region            String?
   territory         String?
-  mainContact       String
+  mainContact       String?
   contactNumber     String?
   email             String?
   location          String?
@@ -75,14 +75,14 @@ model EquipmentRecord {
   customerId            String
   customer              Customer @relation(fields: [customerId], references: [id])
 
-  equipTag              String
-  model                 String
-  compressorType        String
-  serialNumber          String
-  brand                 String              // "Brand (Manufacture)"
-  motorMakeModel        String
-  motorSerial           String
-  motorKw               Float
+  equipTag              String?  // required on /new form; nullable here — see Required Fields note
+  model                 String?
+  compressorType        String?
+  serialNumber          String?
+  brand                 String?              // "Brand (Manufacture)"
+  motorMakeModel        String?
+  motorSerial           String?
+  motorKw               Float?
   yearInstalled         Int?
   yearCommissioned      Int?
   runningHours          Float?
@@ -91,10 +91,10 @@ model EquipmentRecord {
   areaClassification    String?
   equipmentSalesPerson  String?
 
-  controllerType        String
-  oilType                String
+  controllerType        String?
+  oilType                String?
   oilCharge              String?
-  refType                String
+  refType                String?
   refCharge              String?
   detailedComments       String?
 
@@ -113,7 +113,11 @@ model EquipmentRecord {
 ## Required Fields
 
 The source sheet marks required columns with a yellow header fill. These map to required
-inputs on the `/new` form (server-validated with `zod`) and `NOT NULL` columns in the schema.
+inputs on the `/new` form (client- and server-validated with `zod`) — **but are nullable at
+the DB level**, not `NOT NULL`. The historical 422-row dataset is frequently missing them
+(e.g. Motor KW is blank on 419/422 rows, Equip Tag on 417/422) — enforcing `NOT NULL` in the
+schema would make seeding that data impossible. "Required" here means required for new entries
+going forward, enforced at the API/form boundary, not a database constraint on legacy rows.
 `No.` is excluded — it's system-generated (auto-increment), not user-entered.
 
 - Customer

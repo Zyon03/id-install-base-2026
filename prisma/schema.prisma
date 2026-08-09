@@ -20,10 +20,13 @@ model Customer {
   name             String
   bpNumber         String?
   uniqueIdentifier String?
-  address          String
-  region           String
+  // Address/region/mainContact are required on the /new form (SPEC.md's
+  // Required Fields), but nullable here — the historical seeded data is
+  // frequently missing them (~35-65% blank across the source sheet).
+  address          String?
+  region           String?
   territory        String?
-  mainContact      String
+  mainContact      String?
   contactNumber    String?
   email            String?
   location         String?
@@ -45,14 +48,17 @@ model EquipmentRecord {
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id])
 
-  equipTag             String
-  model                String
-  compressorType       String
-  serialNumber         String
-  brand                String
-  motorMakeModel       String
-  motorSerial          String
-  motorKw              Float
+  // Same story as Customer above: these are required on the /new form but
+  // nullable at the DB level — the historical sheet is missing them on the
+  // large majority of rows (e.g. Motor KW blank on 419/422 rows).
+  equipTag             String?
+  model                String?
+  compressorType       String?
+  serialNumber         String?
+  brand                String?
+  motorMakeModel       String?
+  motorSerial          String?
+  motorKw              Float?
   yearInstalled        Int?
   yearCommissioned     Int?
   runningHours         Float?
@@ -61,10 +67,10 @@ model EquipmentRecord {
   areaClassification   String?
   equipmentSalesPerson String?
 
-  controllerType   String
-  oilType          String
+  controllerType   String?
+  oilType          String?
   oilCharge        String?
-  refType          String
+  refType          String?
   refCharge        String?
   detailedComments String?
 
