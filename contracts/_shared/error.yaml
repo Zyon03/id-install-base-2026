@@ -1,0 +1,50 @@
+components:
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code, e.g. "validation_error", "not_found"
+              example: "validation_error"
+            message:
+              type: string
+              description: Human-readable explanation, safe to show in the UI
+              example: "Customer name is required"
+            details:
+              type: object
+              nullable: true
+              description: >
+                Optional field-level validation errors, e.g. { "email": "invalid format" }.
+                Null when not applicable.
+      example:
+        error:
+          code: "validation_error"
+          message: "Customer name is required"
+          details:
+            name: "This field is required"
+
+  responses:
+    BadRequest:
+      description: Invalid request body or query params (zod validation failure)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
