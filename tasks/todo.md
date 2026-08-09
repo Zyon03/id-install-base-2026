@@ -12,7 +12,7 @@ picks the next unchecked task from here.
   - Files: `package.json`, `next.config.*`, `tailwind.config.*`, `tsconfig.json`, `.eslintrc*`
   - Size: M
 
-- [ ] Task 2: Prisma schema + Neon Postgres + first migration
+- [x] Task 2: Prisma schema + Neon Postgres + first migration
   - Acceptance: `Customer` and `EquipmentRecord` models match `SPEC.md`'s Data Model exactly (required vs. optional per the Required Fields list); `DATABASE_URL` wired to a Neon instance via `.env` (gitignored); `npx prisma migrate dev` creates the initial migration cleanly
   - Verify: `npx prisma studio` shows both empty tables with correct columns/types
   - Dependencies: Task 1
