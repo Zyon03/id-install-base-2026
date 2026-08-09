@@ -69,7 +69,7 @@ picks the next unchecked task from here.
   - Files: `contracts/equipment/update_equipment.yaml`
   - Size: XS
 
-- [ ] Task 9: Implement inline edit
+- [x] Task 9: Implement inline edit
   - Acceptance: `/gen-feature` implements the `PATCH` handler (zod-validated, required fields enforced) and wires the grid's `processRowUpdate`, with optimistic UI + rollback on error
   - Verify: editing a cell persists after reload; invalid edits (e.g. blanking a required field) show an inline error and don't save
   - Dependencies: Task 8

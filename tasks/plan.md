@@ -42,6 +42,7 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Task 6: Contract — `GET /api/equipment`
 - [x] Task 7: Implement list endpoint + read-only grid
 - [x] Task 8: Contract — `PATCH /api/equipment/{id}`
+- [x] Task 9: Implement inline edit
 - [ ] Task 8: Contract — `PATCH /api/equipment/{id}`
 - [ ] Task 9: Implement inline edit
 - [ ] Task 10: Contract — `DELETE /api/equipment/{id}`
