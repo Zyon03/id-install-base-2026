@@ -5,7 +5,7 @@ picks the next unchecked task from here.
 
 ## Phase 1: Foundation
 
-- [ ] Task 1: Scaffold the Next.js app
+- [x] Task 1: Scaffold the Next.js app
   - Acceptance: `create-next-app` project with TS, App Router; MUI + Emotion installed with a base theme; Tailwind installed with `preflight` disabled; ESLint/Prettier configured; folder structure matches `SPEC.md`'s Project Structure (`src/app`, `src/components`, `src/lib`, `src/theme`, `tests/`)
   - Verify: `npm run dev` serves a blank page; `npm run lint` and `npm run build` pass
   - Dependencies: None
