@@ -62,7 +62,7 @@ picks the next unchecked task from here.
   - Files: `src/app/api/equipment/route.ts`, `src/app/installs/page.tsx`, `src/components/installs/EquipmentGrid.tsx`
   - Size: M
 
-- [ ] Task 8: Contract — `PATCH /api/equipment/{id}`
+- [x] Task 8: Contract — `PATCH /api/equipment/{id}`
   - Acceptance: `/gen-contract` produces `contracts/equipment/update_equipment.yaml` for partial updates, confirmed by human
   - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Task 7
