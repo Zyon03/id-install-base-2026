@@ -1,7 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Pagination, TextField } from "@mui/material";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  Pagination,
+  TextField,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   DataGrid,
   getGridStringOperators,
@@ -225,6 +238,18 @@ export async function updateEquipmentRow(
 
   const body = (await response.json()) as { data: EquipmentListItem };
   return body.data;
+}
+
+/** Sends DELETE /api/equipment/{id}. Extracted for the same testability reason as updateEquipmentRow. */
+export async function deleteEquipmentRow(id: string): Promise<void> {
+  const response = await fetch(`/api/equipment/${id}`, { method: "DELETE" });
+
+  if (!response.ok) {
+    const body: ApiErrorResponse | null = await response.json().catch(() => null);
+    throw new Error(
+      body?.error?.message ?? `Failed to delete equipment (status ${response.status}).`,
+    );
+  }
 }
 
 function toDate(value: unknown): Date | null {
@@ -595,8 +620,53 @@ export function EquipmentGrid() {
   const [rowCount, setRowCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<EquipmentListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const pageCount = Math.max(1, Math.ceil(rowCount / paginationModel.pageSize));
+
+  // Row-action column (delete) needs access to component state, so it's built
+  // here rather than in the module-level `columns` array.
+  const allColumns = useMemo<GridColDef<EquipmentListItem>[]>(
+    () => [
+      {
+        field: "actions",
+        headerName: "",
+        width: 56,
+        sortable: false,
+        filterable: false,
+        editable: false,
+        disableColumnMenu: true,
+        renderCell: (params) => (
+          <IconButton
+            aria-label="Delete row"
+            size="small"
+            onClick={() => setDeleteTarget(params.row)}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        ),
+      },
+      ...columns,
+    ],
+    [],
+  );
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteEquipmentRow(deleteTarget.id);
+      setRows((prev) => prev.filter((row) => row.id !== deleteTarget.id));
+      setRowCount((prev) => Math.max(0, prev - 1));
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete equipment.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Controlled/server-mode pagination doesn't get page-number or first/last buttons from the
   // grid's default footer — build one from our own paginationModel state instead of reaching
@@ -725,7 +795,7 @@ export function EquipmentGrid() {
       <Box sx={{ width: "100%" }}>
         <DataGrid
           rows={rows}
-          columns={columns}
+          columns={allColumns}
           columnGroupingModel={columnGroupingModel}
           rowCount={rowCount}
           loading={loading}
@@ -756,6 +826,24 @@ export function EquipmentGrid() {
           sx={{ height: 640, bgcolor: "background.paper" }}
         />
       </Box>
+      <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>Delete equipment record?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will permanently delete the record for{" "}
+            <strong>{deleteTarget?.customer_name}</strong>
+            {deleteTarget?.model ? ` (${deleteTarget.model})` : ""}. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" disabled={deleting}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -1,0 +1,50 @@
+openapi: 3.1.0
+info:
+  title: Delete Equipment
+  version: 1.0.0
+  description: >
+    Deletes a single equipment record. Per SPEC.md's boundary ("never delete
+    without explicit UI confirmation"), the confirmation step is a frontend
+    concern (a confirm dialog before this request is ever sent) — this
+    endpoint itself performs the delete unconditionally once called, with no
+    server-side confirmation step or soft-delete/undo.
+
+paths:
+  /api/equipment/{id}:
+    delete:
+      operationId: deleteEquipment
+      summary: Delete one equipment record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: >
+            The record was deleted. Returns the deleted id rather than 204 No
+            Content, to stay consistent with this project's envelope
+            convention (every success response has a `data` key) and to give
+            the frontend an explicit confirmation payload for removing the
+            row from local grid state.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [id]
+                    properties:
+                      id:
+                        type: string
+              example:
+                data:
+                  id: "clx1a2b3c4d5e6f7g8h9i0j1"
+        "404":
+          description: No equipment record exists with the given id.
+          $ref: "../_shared/error.yaml#/components/responses/NotFound"
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"

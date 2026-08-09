@@ -207,3 +207,21 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     return errorResponse(500, "internal_error", "Something went wrong while updating the equipment record.");
   }
 }
+
+export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+
+  try {
+    const existing = await prisma.equipmentRecord.findUnique({ where: { id } });
+    if (!existing) {
+      return errorResponse(404, "not_found", `No equipment record exists with id "${id}".`);
+    }
+
+    await prisma.equipmentRecord.delete({ where: { id } });
+
+    return NextResponse.json({ data: { id } });
+  } catch (error) {
+    console.error(`DELETE /api/equipment/${id} failed:`, error);
+    return errorResponse(500, "internal_error", "Something went wrong while deleting the equipment record.");
+  }
+}

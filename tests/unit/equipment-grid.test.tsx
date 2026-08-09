@@ -280,6 +280,93 @@ describe("updateEquipmentRow", () => {
   });
 });
 
+describe("EquipmentGrid delete with confirmation", () => {
+  beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("does not call the API until the confirm dialog is accepted", async () => {
+    global.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return { ok: true, json: async () => ({ data: { id: EXAMPLE_ITEM.id } }) } as Response;
+      }
+      return { ok: true, json: async () => buildResponse() } as Response;
+    }) as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+    await screen.findByText("Acme Testing Co");
+
+    await user.click(screen.getByRole("button", { name: /delete row/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    const deleteCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (call) => (call[1] as RequestInit | undefined)?.method === "DELETE",
+    );
+    expect(deleteCalls).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByText("Acme Testing Co")).toBeInTheDocument();
+  });
+
+  it("deletes the row via DELETE /api/equipment/{id} and removes it from the grid on confirm", async () => {
+    global.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return { ok: true, json: async () => ({ data: { id: EXAMPLE_ITEM.id } }) } as Response;
+      }
+      return { ok: true, json: async () => buildResponse() } as Response;
+    }) as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+    await screen.findByText("Acme Testing Co");
+
+    await user.click(screen.getByRole("button", { name: /delete row/i }));
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    await waitFor(() => expect(screen.queryByText("Acme Testing Co")).not.toBeInTheDocument());
+
+    const deleteCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call) => (call[1] as RequestInit | undefined)?.method === "DELETE",
+    );
+    expect(deleteCall?.[0]).toBe(`/api/equipment/${EXAMPLE_ITEM.id}`);
+  });
+
+  it("shows an error and keeps the row when the delete fails", async () => {
+    global.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return {
+          ok: false,
+          status: 500,
+          json: async () => ({ error: { code: "internal_error", message: "Delete failed" } }),
+        } as Response;
+      }
+      return { ok: true, json: async () => buildResponse() } as Response;
+    }) as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    render(<EquipmentGrid />);
+    await screen.findByText("Acme Testing Co");
+
+    await user.click(screen.getByRole("button", { name: /delete row/i }));
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    expect(await screen.findByText("Delete failed")).toBeInTheDocument();
+    // The row must still be present as an actual grid cell — allow for the
+    // name also appearing in the (still-open, since the delete failed)
+    // confirmation dialog text.
+    const matches = screen.getAllByText("Acme Testing Co");
+    const inGridCell = matches.some((el) => el.closest('[role="gridcell"]') !== null);
+    expect(inGridCell).toBe(true);
+  });
+});
+
 describe("EquipmentGrid inline cell editing (wired end to end)", () => {
   it("persists an edited cell via PATCH /api/equipment/{id} and reflects the server's response", async () => {
     const updatedItem: EquipmentListItem = {
