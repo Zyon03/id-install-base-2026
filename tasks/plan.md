@@ -52,9 +52,9 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Review with human before proceeding
 
 ### Phase 3: New Entry form
-- [ ] Task 12: Contract — `GET/POST /api/customers`
-- [ ] Task 13: Contract — `POST /api/equipment`
-- [ ] Task 14: Implement customer + create-equipment backend
+- [x] Task 12: Contract — `GET/POST /api/customers`
+- [x] Task 13: Contract — `POST /api/equipment`
+- [x] Task 14: Implement customer + create-equipment backend
 - [ ] Task 15: Implement `/new` form page
 
 ### Checkpoint: Create flow

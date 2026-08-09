@@ -145,3 +145,102 @@ export async function GET(request: NextRequest) {
     return errorResponse(500, "internal_error", "Something went wrong while fetching equipment records.");
   }
 }
+
+const nullableString = z.string().nullable().optional();
+const nullableNumber = z.number().nullable().optional();
+const nullableInt = z.number().int().nullable().optional();
+const nullableDateTime = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Invalid date-time value." })
+  .nullable()
+  .optional();
+const requiredString = z.string().trim().min(1, "This field is required");
+
+// Mirrors contracts/equipment/create_equipment.yaml's CreateEquipmentRequest —
+// customer_id + the 11 equipment-side required fields from SPEC.md are
+// required; every other equipment field is optional. No customer fields are
+// accepted here — see the contract's note on why customer creation is a
+// separate POST /api/customers call. Unknown keys rejected via .strict().
+const createEquipmentSchema = z
+  .object({
+    customer_id: requiredString,
+    equip_tag: requiredString,
+    model: requiredString,
+    compressor_type: requiredString,
+    serial_number: requiredString,
+    brand: requiredString,
+    motor_make_model: requiredString,
+    motor_serial: requiredString,
+    motor_kw: z.number(),
+    year_installed: nullableInt,
+    year_commissioned: nullableInt,
+    running_hours: nullableNumber,
+    last_service_date: nullableDateTime,
+    comments: nullableString,
+    area_classification: nullableString,
+    equipment_sales_person: nullableString,
+    controller_type: requiredString,
+    oil_type: requiredString,
+    oil_charge: nullableString,
+    ref_type: requiredString,
+    ref_charge: nullableString,
+    detailed_comments: nullableString,
+    third_party_compressor_model: nullableString,
+    third_party_run_hours: nullableNumber,
+    third_party_psa_contract: nullableString,
+    condenser_make_model: nullableString,
+    ammonia_pump_make_model: nullableString,
+  })
+  .strict();
+
+const DATE_FIELDS = new Set<EquipmentListField>(["last_service_date"]);
+
+function toPrismaValue(field: EquipmentListField, value: unknown): unknown {
+  if (DATE_FIELDS.has(field) && typeof value === "string") {
+    return new Date(value);
+  }
+  return value;
+}
+
+export async function POST(request: NextRequest) {
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return errorResponse(400, "validation_error", "Request body must be valid JSON.");
+  }
+
+  const parsed = createEquipmentSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return errorResponse(400, "validation_error", "Invalid request body.", z.flattenError(parsed.error));
+  }
+
+  const { customer_id, ...fields } = parsed.data;
+
+  try {
+    const customer = await prisma.customer.findUnique({ where: { id: customer_id } });
+    if (!customer) {
+      return errorResponse(404, "not_found", `No customer exists with id "${customer_id}".`);
+    }
+
+    const equipmentData: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value === undefined) continue;
+      const field = key as EquipmentListField;
+      const prismaField = EQUIPMENT_FIELD_MAP[field];
+      if (prismaField) {
+        equipmentData[prismaField] = toPrismaValue(field, value);
+      }
+    }
+
+    const record = await prisma.equipmentRecord.create({
+      data: { customerId: customer_id, ...equipmentData } as Prisma.EquipmentRecordUncheckedCreateInput,
+      include: { customer: true },
+    });
+
+    return NextResponse.json({ data: toEquipmentListItem(record) }, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/equipment failed:", error);
+    return errorResponse(500, "internal_error", "Something went wrong while creating the equipment record.");
+  }
+}

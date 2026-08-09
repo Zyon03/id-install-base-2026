@@ -97,21 +97,21 @@ picks the next unchecked task from here.
 
 ## Phase 3: New Entry form
 
-- [ ] Task 12: Contract — `GET/POST /api/customers`
+- [x] Task 12: Contract — `GET/POST /api/customers`
   - Acceptance: `/gen-contract` produces `contracts/customers/search_customers.yaml` + `contracts/customers/create_customer.yaml`; also settles how `/new` links a new equipment record to a brand-new customer (separate call vs. nested create) — decide during contract review
   - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Checkpoint (View/Edit/Delete)
   - Files: `contracts/customers/search_customers.yaml`, `contracts/customers/create_customer.yaml`
   - Size: S
 
-- [ ] Task 13: Contract — `POST /api/equipment`
+- [x] Task 13: Contract — `POST /api/equipment`
   - Acceptance: `/gen-contract` produces `contracts/equipment/create_equipment.yaml` covering all 15 required fields, confirmed by human
   - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Task 12
   - Files: `contracts/equipment/create_equipment.yaml`
   - Size: XS
 
-- [ ] Task 14: Implement customer + create-equipment backend
+- [x] Task 14: Implement customer + create-equipment backend
   - Acceptance: `/gen-feature` implements customer search/create handlers and the equipment-create handler per contracts, zod-validated against the required-fields list
   - Verify: route tests cover required-field rejection and successful creation (existing and new customer)
   - Dependencies: Task 13
