@@ -33,7 +33,7 @@ picks the next unchecked task from here.
   - Files: `prisma/seed.ts`
   - Size: S
 
-- [ ] Task 5: App shell
+- [x] Task 5: App shell
   - Acceptance: root layout wires MUI `ThemeProvider` + `CssBaseline` and Tailwind's global stylesheet together without visual conflicts; simple nav/header links between `/installs` and `/new`
   - Verify: manual check — both routes render with consistent theme, nav works
   - Dependencies: Task 1
@@ -41,9 +41,9 @@ picks the next unchecked task from here.
   - Size: S
 
 ### Checkpoint: Foundation
-- [ ] `npm run build`, `npm run lint`, `npm run typecheck` all pass
-- [ ] Seed loads real data into Postgres successfully
-- [ ] Blank `/installs` and `/new` routes render with shared theme/nav
+- [x] `npm run build`, `npm run lint`, `npm run typecheck` all pass
+- [x] Seed loads real data into Postgres successfully
+- [x] Blank `/installs` and `/new` routes render with shared theme/nav
 - [ ] Review with human before proceeding
 
 ## Phase 2: View, Edit, Delete (Install Base grid)

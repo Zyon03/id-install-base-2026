@@ -30,15 +30,12 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Task 2: Prisma schema + Neon Postgres + first migration
 - [x] Task 3: Excel column-mapping library
 - [x] Task 4: Seed script
-- [ ] Task 2: Prisma schema + Neon Postgres + first migration
-- [ ] Task 3: Excel column-mapping library
-- [ ] Task 4: Seed script
-- [ ] Task 5: App shell
+- [x] Task 5: App shell
 
 ### Checkpoint: Foundation
-- [ ] `npm run build`, `npm run lint`, `npm run typecheck` all pass
-- [ ] Seed loads real data into Postgres successfully
-- [ ] Blank `/installs` and `/new` routes render with shared theme/nav
+- [x] `npm run build`, `npm run lint`, `npm run typecheck` all pass
+- [x] Seed loads real data into Postgres successfully
+- [x] Blank `/installs` and `/new` routes render with shared theme/nav
 - [ ] Review with human before proceeding
 
 ### Phase 2: View, Edit, Delete (Install Base grid)
