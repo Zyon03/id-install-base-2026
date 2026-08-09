@@ -39,6 +39,12 @@ day-to-day lookups/edits, and can still export a clean `.xlsx` snapshot whenever
 Derived from the source sheet's column groups. Customer/contact fields repeat across every
 equipment row for the same customer in the original sheet — normalized here into two tables.
 
+Note: this project is on **Prisma 7**, which moved connection URLs out of `schema.prisma`
+entirely — the datasource block just declares `provider = "postgresql"`. `DATABASE_URL` (Neon's
+pooled endpoint) lives in `prisma.config.ts` for the CLI and in `src/lib/prisma.ts`, where the
+runtime client is constructed with a `@prisma/adapter-pg` driver adapter (Prisma 7 requires an
+explicit driver adapter — there's no more implicit engine-based connection).
+
 ```prisma
 model Customer {
   id                String   @id @default(cuid())

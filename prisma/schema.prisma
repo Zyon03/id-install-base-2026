@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Connection URLs live in prisma.config.ts (Prisma 7) and in
+  // src/lib/prisma.ts's driver adapter for the runtime client.
+}
+
+model Customer {
+  id               String    @id @default(cuid())
+  no               Int       @unique @default(autoincrement())
+  name             String
+  bpNumber         String?
+  uniqueIdentifier String?
+  address          String
+  region           String
+  territory        String?
+  mainContact      String
+  contactNumber    String?
+  email            String?
+  location         String?
+  fnbOrYps         String?
+  psaStatus        String?
+  psaContract      String?
+  psaEndDate       DateTime?
+  salesRep         String?
+  opsTeam          String?
+
+  equipment EquipmentRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EquipmentRecord {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  equipTag             String
+  model                String
+  compressorType       String
+  serialNumber         String
+  brand                String
+  motorMakeModel       String
+  motorSerial          String
+  motorKw              Float
+  yearInstalled        Int?
+  yearCommissioned     Int?
+  runningHours         Float?
+  lastServiceDate      DateTime?
+  comments             String?
+  areaClassification   String?
+  equipmentSalesPerson String?
+
+  controllerType   String
+  oilType          String
+  oilCharge        String?
+  refType          String
+  refCharge        String?
+  detailedComments String?
+
+  thirdPartyCompressorModel String?
+  thirdPartyRunHours        Float?
+  thirdPartyPsaContract     String?
+  condenserMakeModel        String?
+  ammoniaPumpMakeModel      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
