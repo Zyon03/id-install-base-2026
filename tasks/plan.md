@@ -64,8 +64,8 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 ### Phase 4: Excel Import/Export
 - [x] Task 16: Contract — `GET /api/export`
 - [x] Task 17: Implement export + download button
-- [ ] Task 18: Contract — `POST /api/import`
-- [ ] Task 19: Implement import
+- [x] Task 18: Contract — `POST /api/import`
+- [x] Task 19: Implement import
 
 ### Checkpoint: Excel round-trip
 - [ ] Export → import round-trip preserves data

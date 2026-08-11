@@ -145,14 +145,14 @@ picks the next unchecked task from here.
   - Files: `src/app/api/export/route.ts`, `src/app/installs/page.tsx`
   - Size: S
 
-- [ ] Task 18: Contract — `POST /api/import`
+- [x] Task 18: Contract — `POST /api/import`
   - Acceptance: `/gen-contract` produces `contracts/import/import_equipment.yaml` for multipart `.xlsx` upload and bulk upsert
   - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Task 17
   - Files: `contracts/import/import_equipment.yaml`
   - Size: XS
 
-- [ ] Task 19: Implement import
+- [x] Task 19: Implement import
   - Acceptance: `/gen-feature` implements the handler reusing `lib/xlsx.ts`; consider refactoring `prisma/seed.ts` (Task 4) to call this same code path to avoid drift
   - Verify: uploading the original source `.xlsx` to a freshly-migrated DB reproduces the seed result
   - Dependencies: Task 18
