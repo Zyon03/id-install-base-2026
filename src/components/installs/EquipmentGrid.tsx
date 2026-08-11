@@ -18,6 +18,8 @@ import {
   Stack,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
@@ -680,11 +682,17 @@ export function EquipmentGrid() {
   // default footer's rows-per-page selector and "X-Y of Z" range text, so those are
   // reimplemented here too rather than lost.
   function CustomPagination() {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
     const rangeStart = rowCount === 0 ? 0 : paginationModel.page * paginationModel.pageSize + 1;
     const rangeEnd = Math.min((paginationModel.page + 1) * paginationModel.pageSize, rowCount);
 
     return (
-      <Stack direction="row" spacing={3} sx={{ alignItems: "center", px: 1 }}>
+      <Stack
+        direction="row"
+        spacing={{ xs: 1, sm: 3 }}
+        sx={{ alignItems: "center", px: 1, py: 0.5, flexWrap: "wrap", rowGap: 1 }}
+      >
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <Typography variant="body2" color="text.secondary">
             Rows per page:
@@ -718,6 +726,7 @@ export function EquipmentGrid() {
           showFirstButton
           showLastButton
           size="small"
+          siblingCount={isMobile ? 0 : 1}
         />
       </Stack>
     );

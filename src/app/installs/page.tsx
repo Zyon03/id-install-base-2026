@@ -4,11 +4,11 @@ import { EquipmentGrid } from "@/components/installs/EquipmentGrid";
 
 export default function InstallsPage() {
   return (
-    <Container maxWidth={false} sx={{ py: 4 }}>
+    <Container maxWidth={false} sx={{ py: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
       <Stack
-        direction="row"
+        direction={{ xs: "column", sm: "row" }}
         spacing={2}
-        sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}
+        sx={{ justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, mb: 1 }}
       >
         <Typography variant="h4" component="h1" gutterBottom>
           Install Base

@@ -165,7 +165,7 @@ picks the next unchecked task from here.
 
 ## Phase 5: Polish
 
-- [ ] Task 20: Mobile responsiveness pass
+- [x] Task 20: Mobile responsiveness pass
   - Acceptance: `/installs` and `/new` usable on a mobile viewport per `SPEC.md`'s success criteria (grid degrades gracefully; form fully usable one-handed)
   - Verify: manual check at common mobile breakpoints (375px, 414px widths)
   - Dependencies: Checkpoint (Excel round-trip)
