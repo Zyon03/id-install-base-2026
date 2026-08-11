@@ -73,7 +73,7 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 
 ### Phase 5: Polish
 - [x] Task 20: Mobile responsiveness pass
-- [ ] Task 21: Close test coverage gaps
+- [x] Task 21: Close test coverage gaps
 
 ### Checkpoint: Ready to ship
 - [ ] All `SPEC.md` Success Criteria checked off

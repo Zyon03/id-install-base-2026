@@ -265,6 +265,39 @@ function toDate(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// Builds the GET /api/equipment query string from the grid's controlled
+// state. Extracted as a standalone function (rather than inlined in the
+// fetch effect) for the same testability reason as computeEquipmentDiff —
+// driving MUI X Data Grid's actual filter-panel UI through userEvent in
+// jsdom is unreliable, so the param-building logic is unit tested directly
+// instead of through the DOM.
+export function buildEquipmentQueryParams(
+  paginationModel: GridPaginationModel,
+  search: string,
+  filterModel: GridFilterModel,
+  sortModel: GridSortModel,
+): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set("page", String(paginationModel.page + 1));
+  params.set("page_size", String(paginationModel.pageSize));
+  if (search.trim()) params.set("search", search.trim());
+
+  for (const item of filterModel.items) {
+    if (!isFilterableField(item.field)) continue;
+    if (item.value === undefined || item.value === null || item.value === "") continue;
+    params.set(item.field, String(item.value));
+  }
+
+  // Community edition only supports single-column sort.
+  const [sortItem] = sortModel;
+  if (sortItem?.sort) {
+    params.set("sort_by", sortItem.field);
+    params.set("sort_order", sortItem.sort);
+  }
+
+  return params;
+}
+
 function filterableColumnProps(): Partial<GridColDef<EquipmentListItem>> {
   return { filterable: true, filterOperators: equalsOnlyOperators };
 }
@@ -781,23 +814,7 @@ export function EquipmentGrid() {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams();
-      params.set("page", String(paginationModel.page + 1));
-      params.set("page_size", String(paginationModel.pageSize));
-      if (search.trim()) params.set("search", search.trim());
-
-      for (const item of filterModel.items) {
-        if (!isFilterableField(item.field)) continue;
-        if (item.value === undefined || item.value === null || item.value === "") continue;
-        params.set(item.field, String(item.value));
-      }
-
-      // Community edition only supports single-column sort.
-      const [sortItem] = sortModel;
-      if (sortItem?.sort) {
-        params.set("sort_by", sortItem.field);
-        params.set("sort_order", sortItem.sort);
-      }
+      const params = buildEquipmentQueryParams(paginationModel, search, filterModel, sortModel);
 
       try {
         const response = await fetch(`/api/equipment?${params.toString()}`, {

@@ -172,7 +172,7 @@ picks the next unchecked task from here.
   - Files: `src/components/installs/EquipmentGrid.tsx`, `src/components/new/EquipmentForm.tsx`, Tailwind classes throughout
   - Size: S
 
-- [ ] Task 21: Close test coverage gaps
+- [x] Task 21: Close test coverage gaps
   - Acceptance: every API route and `lib/xlsx.ts` has at least one test; component tests exist for grid filter/edit/delete and form validation/submit
   - Verify: `npm test` green; no route or non-trivial utility left untested
   - Dependencies: Task 20

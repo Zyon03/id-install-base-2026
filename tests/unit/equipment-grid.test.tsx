@@ -2,11 +2,13 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  buildEquipmentQueryParams,
   computeEquipmentDiff,
   EquipmentGrid,
   updateEquipmentRow,
   type EquipmentListItem,
 } from "@/components/installs/EquipmentGrid";
+import type { GridFilterModel, GridPaginationModel, GridSortModel } from "@mui/x-data-grid";
 
 // jsdom has no ResizeObserver; MUI X Data Grid needs one to measure its viewport.
 class ResizeObserverStub {
@@ -227,6 +229,85 @@ describe("EquipmentGrid", () => {
     render(<EquipmentGrid />);
 
     expect(await screen.findByText("Something broke")).toBeInTheDocument();
+  });
+});
+
+// Driving MUI X Data Grid's actual filter-panel UI through userEvent in
+// jsdom is unreliable (same reasoning as the cell-edit tests below), so the
+// query-param-building logic behind the grid's search/filter/sort/pagination
+// state is unit tested directly via its extracted pure function instead.
+describe("buildEquipmentQueryParams", () => {
+  const basePagination: GridPaginationModel = { page: 0, pageSize: 50 };
+  const noFilters: GridFilterModel = { items: [] };
+  const noSort: GridSortModel = [];
+
+  it("always sets page (1-indexed) and page_size", () => {
+    const params = buildEquipmentQueryParams({ page: 2, pageSize: 25 }, "", noFilters, noSort);
+    expect(params.get("page")).toBe("3");
+    expect(params.get("page_size")).toBe("25");
+  });
+
+  it("omits search when blank or whitespace-only, trims it otherwise", () => {
+    expect(buildEquipmentQueryParams(basePagination, "  ", noFilters, noSort).has("search")).toBe(false);
+    expect(buildEquipmentQueryParams(basePagination, " frick ", noFilters, noSort).get("search")).toBe(
+      "frick",
+    );
+  });
+
+  it("includes a filter on an allowlisted field with a non-empty value", () => {
+    const filterModel: GridFilterModel = { items: [{ field: "region", operator: "equals", value: "Java" }] };
+    const params = buildEquipmentQueryParams(basePagination, "", filterModel, noSort);
+    expect(params.get("region")).toBe("Java");
+  });
+
+  it("ignores a filter on a field the API doesn't support filtering on", () => {
+    const filterModel: GridFilterModel = {
+      items: [{ field: "customer_name", operator: "equals", value: "Acme" }],
+    };
+    const params = buildEquipmentQueryParams(basePagination, "", filterModel, noSort);
+    expect(params.has("customer_name")).toBe(false);
+  });
+
+  it.each([undefined, null, ""])("ignores a filterable field with an empty value (%p)", (value) => {
+    const filterModel: GridFilterModel = { items: [{ field: "region", operator: "equals", value }] };
+    const params = buildEquipmentQueryParams(basePagination, "", filterModel, noSort);
+    expect(params.has("region")).toBe(false);
+  });
+
+  it("applies multiple simultaneous column filters", () => {
+    const filterModel: GridFilterModel = {
+      items: [
+        { field: "region", operator: "equals", value: "Java" },
+        { field: "brand", operator: "equals", value: "Frick" },
+      ],
+    };
+    const params = buildEquipmentQueryParams(basePagination, "", filterModel, noSort);
+    expect(params.get("region")).toBe("Java");
+    expect(params.get("brand")).toBe("Frick");
+  });
+
+  it("sets sort_by/sort_order from the first sort model entry, omitting them when unsorted", () => {
+    expect(buildEquipmentQueryParams(basePagination, "", noFilters, noSort).has("sort_by")).toBe(false);
+
+    const sortModel: GridSortModel = [{ field: "brand", sort: "desc" }];
+    const params = buildEquipmentQueryParams(basePagination, "", noFilters, sortModel);
+    expect(params.get("sort_by")).toBe("brand");
+    expect(params.get("sort_order")).toBe("desc");
+  });
+
+  it("combines search, filter, and sort together in one request", () => {
+    const filterModel: GridFilterModel = { items: [{ field: "oil_type", operator: "equals", value: "Synthetic" }] };
+    const sortModel: GridSortModel = [{ field: "customer_name", sort: "asc" }];
+    const params = buildEquipmentQueryParams({ page: 1, pageSize: 100 }, "compressor", filterModel, sortModel);
+
+    expect(Object.fromEntries(params.entries())).toEqual({
+      page: "2",
+      page_size: "100",
+      search: "compressor",
+      oil_type: "Synthetic",
+      sort_by: "customer_name",
+      sort_order: "asc",
+    });
   });
 });
 
