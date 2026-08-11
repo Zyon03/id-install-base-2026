@@ -131,14 +131,14 @@ picks the next unchecked task from here.
 
 ## Phase 4: Excel Import/Export
 
-- [ ] Task 16: Contract — `GET /api/export`
+- [x] Task 16: Contract — `GET /api/export`
   - Acceptance: `/gen-contract` produces `contracts/export/export_equipment.yaml` describing a file-download response reproducing the original column layout
   - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Checkpoint (Create flow)
   - Files: `contracts/export/export_equipment.yaml`
   - Size: XS
 
-- [ ] Task 17: Implement export + download button
+- [x] Task 17: Implement export + download button
   - Acceptance: `/gen-feature` implements the handler (reusing `lib/xlsx.ts`'s reverse mapping) and adds a download button on `/installs`
   - Verify: downloaded `.xlsx` opens cleanly and matches the original column structure with current DB data
   - Dependencies: Task 16

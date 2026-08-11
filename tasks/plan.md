@@ -62,8 +62,8 @@ work; `tasks/todo.md` holds the actionable per-task checklist.
 - [ ] Review with human before proceeding
 
 ### Phase 4: Excel Import/Export
-- [ ] Task 16: Contract — `GET /api/export`
-- [ ] Task 17: Implement export + download button
+- [x] Task 16: Contract — `GET /api/export`
+- [x] Task 17: Implement export + download button
 - [ ] Task 18: Contract — `POST /api/import`
 - [ ] Task 19: Implement import
 
