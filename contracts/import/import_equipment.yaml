@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: Import Equipment
+  version: 1.0.0
+  description: >
+    Accepts a `.xlsx` upload matching the source spreadsheet's 43-column
+    grouped-header layout (the same layout `GET /api/export` produces),
+    parses it via lib/xlsx.ts's existing `parseInstallBaseWorkbook`, and
+    replaces the entire dataset with what the file contains.
+
+    DESTRUCTIVE: this is a full truncate-and-reload, not a merge/upsert —
+    every existing Customer and EquipmentRecord row is deleted and replaced
+    with the file's contents, matching prisma/seed.ts's existing behavior
+    (`TRUNCATE ... RESTART IDENTITY CASCADE` then recreate). This is what
+    makes it usable as the seed path against a fresh database per SPEC.md's
+    Success Criteria, but it means importing an older or partial file into a
+    database that already has newer data (e.g. records created via /new)
+    permanently discards those newer records.
+
+    To guard against an accidental file-picker mistake wiping live data, the
+    request requires an explicit `confirm: true` form field alongside the
+    file — the UI must surface a confirmation step before setting it, per
+    SPEC.md's boundary on never deleting records without explicit UI
+    confirmation.
+
+paths:
+  /api/import:
+    post:
+      operationId: importEquipment
+      summary: Replace all equipment/customer data from an uploaded .xlsx file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ImportRequest"
+      responses:
+        "200":
+          description: Import succeeded; dataset replaced.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ImportResult"
+              example:
+                data:
+                  customers_imported: 148
+                  equipment_imported: 422
+        # Missing file, confirm not true, invalid .xlsx, or column-layout
+        # mismatch — error.code is "validation_error" in all cases;
+        # error.message distinguishes which.
+        "400":
+          $ref: "../_shared/error.yaml#/components/responses/BadRequest"
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
+
+components:
+  schemas:
+    ImportRequest:
+      type: object
+      required: [file, confirm]
+      properties:
+        file:
+          type: string
+          format: binary
+          description: >
+            The .xlsx file to import, matching the original 43-column
+            grouped-header layout (rows 1-2 are headers, data from row 3).
+        confirm:
+          type: boolean
+          description: >
+            Must be `true` for the import to proceed. Exists so the request
+            can't succeed without an explicit confirmation step, since this
+            operation deletes all existing data. Sent as the string "true"
+            over multipart/form-data; the server treats any value other than
+            the literal string "true" as false/missing.
+          example: true
+
+    ImportResult:
+      type: object
+      required: [customers_imported, equipment_imported]
+      properties:
+        customers_imported:
+          type: integer
+          format: int32
+          description: Number of Customer rows created by the import.
+        equipment_imported:
+          type: integer
+          format: int32
+          description: Number of EquipmentRecord rows created by the import.
