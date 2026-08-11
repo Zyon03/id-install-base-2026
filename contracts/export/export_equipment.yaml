@@ -1,0 +1,43 @@
+openapi: 3.1.0
+info:
+  title: Export Equipment
+  version: 1.0.0
+  description: >
+    Streams a .xlsx file reproducing the original source spreadsheet's column
+    structure (43 columns across 5 grouped sections: Contact Information,
+    Internal, Equipment, Detailed Information, 3rd Party Information) built
+    from the current contents of Postgres. Always exports the full dataset —
+    no filtering/pagination, since the point is a complete snapshot. Reuses
+    lib/xlsx.ts's reverse mapping (the same column layout the seed script's
+    forward mapping reads from), so export and import stay column-compatible.
+
+    Unlike every other endpoint in this project, the success response is a
+    binary file download, not the { "data": {...} } JSON envelope — there is
+    no JSON payload to wrap on success.
+
+paths:
+  /api/export:
+    get:
+      operationId: exportEquipment
+      summary: Download a .xlsx snapshot of all equipment records
+      responses:
+        "200":
+          description: >
+            The .xlsx file, streamed with a Content-Disposition header
+            triggering a browser download (e.g.
+            `attachment; filename="id-install-base-export-2026-08-11.xlsx"`).
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: >
+                Always `attachment; filename="..."` — the filename embeds the
+                export date so repeated downloads don't collide.
+              example: 'attachment; filename="id-install-base-export-2026-08-11.xlsx"'
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
