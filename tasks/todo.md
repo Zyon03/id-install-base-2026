@@ -184,11 +184,54 @@ picks the next unchecked task from here.
 - [ ] Full test suite, lint, typecheck, build all green
 - [ ] Review with human before proceeding
 
-## Phase 6: Deploy
+## Phase 6: Home Redirect + Install Password Gate
 
-- [ ] Task 22: Deploy to Vercel + Neon
-  - Acceptance: Neon Postgres provisioned, Vercel project linked, `DATABASE_URL` and other env vars set, production migration applied, app deployed
-  - Verify: live URL loads `/installs` with real data and `/new` successfully creates a record
+- [x] Task 22: Contract — `POST /api/auth/installs-login`
+  - Acceptance: `/gen-contract` produces `contracts/auth/installs_login.yaml` covering the request (single `password` field) and response (success sets a session cookie; failure returns the shared error envelope with no hint about the correct value); confirmed by human
+  - Verify: valid OpenAPI 3.1, reviewed and committed
   - Dependencies: Checkpoint (Ready to ship)
+  - Files: `contracts/auth/installs_login.yaml`
+  - Size: XS
+
+- [ ] Task 23: `AppConfig` schema + migration + placeholder-only seed
+  - Acceptance: `AppConfig` model added to `prisma/schema.prisma` exactly matching `SPEC.md`'s Data Model (single row, `installsPassword String`); `npx prisma migrate dev` creates the migration cleanly; `prisma/seed.ts` creates the row only if missing, with an empty/placeholder value — the real password is never written into `seed.ts`, a migration, or `.env.example`
+  - Verify: `npx prisma studio` shows the `AppConfig` table with exactly one row; diff of the commit contains no literal password string
+  - Dependencies: Task 22
+  - Files: `prisma/schema.prisma`, `prisma/migrations/**`, `prisma/seed.ts`
+  - Size: S
+
+- [ ] Task 24: Implement login endpoint + session cookie helpers
+  - Acceptance: `/gen-feature` implements `POST /api/auth/installs-login` per contract — compares the submitted password against `AppConfig.installsPassword`, and on match sets an httpOnly cookie holding an HMAC-signed token (new `AUTH_COOKIE_SECRET` env var, 30-day expiry, never the password itself); `src/lib/auth.ts` holds the sign/verify helpers, reused by middleware in Task 25
+  - Verify: route tests cover correct password (cookie set), wrong password (rejected, no cookie, no password echoed back), and a missing/empty `AppConfig` row handled without crashing
+  - Dependencies: Task 23
+  - Files: `src/app/api/auth/installs-login/route.ts`, `src/lib/auth.ts`, `tests/unit/**`
+  - Size: M
+
+- [ ] Task 25: Middleware gate + password prompt UI on `/installs`
+  - Acceptance: `src/middleware.ts` guards `/installs` by verifying the signed session cookie (signature/expiry check only, no DB call, so it runs on the Edge runtime) and shows the password prompt when it's missing/invalid/expired; `src/components/installs/PasswordGate.tsx` renders the prompt, posts to `/api/auth/installs-login`, and reveals the grid on success without a full page reload
+  - Verify: manual check — visiting `/installs` with no cookie shows the prompt; wrong password shows an inline error and the grid stays hidden; correct password reveals the grid and survives a reload; `/new` and `GET /api/equipment` remain reachable directly with no cookie at all
+  - Dependencies: Task 24
+  - Files: `src/middleware.ts`, `src/components/installs/PasswordGate.tsx`, `src/app/installs/page.tsx`
+  - Size: M
+
+- [ ] Task 26: Remove home page scaffold, redirect `/` to `/new`
+  - Acceptance: `src/app/page.tsx` no longer renders the create-next-app placeholder — it redirects (server-side) straight to `/new`
+  - Verify: visiting `/` lands on `/new` with no intermediate placeholder flash
+  - Dependencies: None
+  - Files: `src/app/page.tsx`
+  - Size: XS
+
+### Checkpoint: Home redirect + Install gate
+- [ ] `/` redirects to `/new`; no leftover scaffold content anywhere
+- [ ] `/installs` is inaccessible without the correct password; correct password persists via a 30-day cookie; `/new` and `/api/**` remain reachable without it
+- [ ] No password value appears anywhere in git history for this phase's commits
+- [ ] Review with human before proceeding
+
+## Phase 7: Deploy
+
+- [ ] Task 27: Deploy to Vercel + Neon
+  - Acceptance: Neon Postgres provisioned, Vercel project linked, `DATABASE_URL`, `AUTH_COOKIE_SECRET`, and other env vars set, production migration applied, `AppConfig.installsPassword` set by hand via `npx prisma studio` against the production DB, app deployed
+  - Verify: live URL loads `/new` at `/`, `/installs` prompts for and enforces the password, and `/new` successfully creates a record
+  - Dependencies: Checkpoint (Home redirect + Install gate)
   - Files: Vercel/Neon dashboard config, or a `vercel.json` if needed
   - Size: S

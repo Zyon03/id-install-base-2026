@@ -1,0 +1,82 @@
+openapi: 3.1.0
+info:
+  title: Install Base Login
+  version: 1.0.0
+  description: >
+    Checks a submitted password against AppConfig.installsPassword and, on a
+    match, sets a signed session cookie that gates access to /installs. This
+    is the one endpoint in the project that legitimately deals with a
+    password/session — every other endpoint has no auth by design (see
+    SPEC.md's Authentication section).
+
+paths:
+  /api/auth/installs-login:
+    post:
+      operationId: installsLogin
+      summary: Authenticate against the /installs password gate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstallsLoginRequest"
+            example:
+              password: "correct horse battery staple"
+      responses:
+        "200":
+          description: >
+            Password matched AppConfig.installsPassword. Sets an httpOnly,
+            signed session cookie (30-day expiry, HMAC-signed with
+            AUTH_COOKIE_SECRET) that middleware checks on subsequent
+            requests to /installs. The cookie value is a signed token, never
+            the password itself.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: >
+                installs_session=<signed-token>; HttpOnly; Secure;
+                SameSite=Lax; Max-Age=2592000; Path=/
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [authenticated]
+                    properties:
+                      authenticated:
+                        type: boolean
+                        example: true
+        "400":
+          description: Missing or non-string `password` field.
+          $ref: "../_shared/error.yaml#/components/responses/BadRequest"
+        "401":
+          description: >
+            Password did not match AppConfig.installsPassword. The message
+            must never hint at the correct value, at whether one has been
+            set yet, or otherwise leak anything about AppConfig.
+          content:
+            application/json:
+              schema:
+                $ref: "../_shared/error.yaml#/components/schemas/Error"
+              example:
+                error:
+                  code: "invalid_password"
+                  message: "Incorrect password."
+        "500":
+          $ref: "../_shared/error.yaml#/components/responses/ServerError"
+
+components:
+  schemas:
+    InstallsLoginRequest:
+      type: object
+      required: [password]
+      description: >
+        The plaintext password to check against AppConfig.installsPassword.
+        Never logged, never echoed back in any response.
+      properties:
+        password:
+          type: string
