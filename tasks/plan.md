@@ -92,7 +92,7 @@ sequences the work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Task 22: Contract — `POST /api/auth/installs-login`
 - [x] Task 23: `AppConfig` schema + migration + placeholder-only seed
 - [x] Task 24: Implement login endpoint + session cookie helpers
-- [ ] Task 25: Middleware gate + password prompt UI on `/installs`
+- [x] Task 25: Password gate + prompt UI on `/installs` (in-page cookie check, no `proxy.ts`)
 - [ ] Task 26: Remove home page scaffold, redirect `/` to `/new`
 
 ### Checkpoint: Home redirect + Install gate

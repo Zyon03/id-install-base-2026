@@ -6,14 +6,18 @@ An internal web app that replaces the "ID install base 2026" Excel tracker — a
 ~470 refrigeration/compressor equipment installations across customer sites (region,
 territory, PSA contract status, equipment specs, service history).
 
-Two pages:
+Two pages, plus a redirect at the root:
 
 1. **Install Base (`/installs`)** — the "glorified Excel sheet." A searchable, filterable,
    editable data grid over every customer + equipment record, replacing manual spreadsheet
-   editing with a proper UI (sorting, filtering, inline edit, export).
+   editing with a proper UI (sorting, filtering, inline edit, export). Gated behind a single
+   shared password — see Authentication below.
 2. **New Entry (`/new`)** — a guided input form for adding a new equipment/install record
    (new or existing customer) without touching the grid directly. Submissions write straight
    to the same database and appear in the grid immediately.
+
+`/` has no content of its own — the old create-next-app placeholder page is removed, and the
+route just redirects straight to `/new` (the more common day-to-day entry point).
 
 **User**: internal team only (sales, ops, service techs) — single trusted group, no public
 access.
@@ -108,7 +112,15 @@ model EquipmentRecord {
   createdAt             DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
+
+model AppConfig {
+  id                String @id @default(cuid())
+  installsPassword  String // plaintext by design — see Authentication
+}
 ```
+
+`AppConfig` is unrelated to the Customer/Equipment domain — it exists purely to hold the
+`/installs` gate password as a single editable row. See Authentication below.
 
 ## Required Fields
 
@@ -137,6 +149,42 @@ going forward, enforced at the API/form boundary, not a database constraint on l
 - Ref Type
 
 Every other field is optional, matching the source sheet.
+
+## Authentication
+
+`/installs` is gated behind a single shared password. This is an internal tool for one trusted
+team — not a multi-user auth system, no accounts, no roles.
+
+- **Storage**: the `AppConfig` table (see Data Model) holds exactly one row with one field,
+  `installsPassword`, stored in **plaintext**. Deliberate choice: the only person with DB access
+  is the person running this app, and they want to change the password by editing that one field
+  directly in Neon / Prisma Studio — no admin UI, no hashing, no redeploy.
+- **Seeding the initial value**: the actual password is **never written to any committed file**
+  — not `prisma/seed.ts`, not a migration, not `.env.example`. Migrations only carry schema DDL
+  (`CREATE TABLE`), never row data, so that part is already safe by construction. The seed
+  script creates the `AppConfig` row (if missing) with a placeholder/empty value at most; the
+  real password is set by hand afterward via `npx prisma studio` — the same out-of-band
+  mechanism used to change it later. This matters because **the GitHub repo is public**, and
+  anything committed stays in git history even after a later change.
+- **Flow**: visiting `/installs` without a valid session renders a password prompt in place of
+  the grid. Submitting posts to `POST /api/auth/installs-login`, which compares the submitted
+  value against `AppConfig.installsPassword`. On match it sets an httpOnly, signed session
+  cookie; on mismatch the form shows an inline error and nothing is set.
+- **Session**: the cookie holds an HMAC-signed token (signed with a new `AUTH_COOKIE_SECRET` env
+  var — never the password itself, so the cookie can't be forged by guessing a value), 30-day
+  expiry. `/installs/page.tsx` — an async Server Component — reads the cookie directly via
+  `next/headers`'s `cookies()` and verifies its signature, rendering the password prompt in
+  place of the grid when it's missing/invalid/expired. This check is signature-only and never
+  touches the DB. (A separate `proxy.ts`/`middleware.ts` was considered and dropped — see
+  Decisions Log; a single gated page doesn't need one.)
+- **Scope**: `/new` and every `/api/**` route stay ungated — only the `/installs` page itself is
+  behind the password. (Explicit choice — the API surface is not part of this gate.)
+- **No lockout / rate-limiting** on repeated wrong guesses — acceptable for a low-stakes internal
+  tool behind one shared password.
+
+This still touches an API boundary (`POST /api/auth/installs-login`), so it follows the same
+Contract-First Workflow as everything else — a contract before implementation, not skipped
+because it's "just auth."
 
 ## API Design Notes
 
@@ -167,8 +215,10 @@ DB seed:      npx prisma db seed       # loads the source .xlsx into Postgres
 ```
 src/
   app/
+    page.tsx                  → redirects `/` → `/new`
     installs/
-      page.tsx              → Install Base grid page
+      page.tsx              → async Server Component; reads the session cookie and renders
+                               either PasswordGate or the grid
     new/
       page.tsx              → New Entry form page
     api/
@@ -179,12 +229,16 @@ src/
         route.ts              → GET (list, for form autocomplete), POST
       export/route.ts          → GET → streams .xlsx of current data
       import/route.ts          → POST → accepts .xlsx upload, bulk upserts
+      auth/
+        installs-login/route.ts → POST → checks password against AppConfig, sets session cookie
   components/
     installs/EquipmentGrid.tsx
+    installs/PasswordGate.tsx   → password prompt shown when /installs is ungated
     new/EquipmentForm.tsx
   lib/
     prisma.ts                → Prisma client singleton
     xlsx.ts                   → shared import/export column mapping
+    auth.ts                    → session cookie sign/verify helpers
   theme/
     theme.ts                  → MUI theme customization
 prisma/
@@ -198,6 +252,7 @@ contracts/
   _shared/error.yaml           → shared error envelope schema
   equipment/                    → OpenAPI contracts for /api/equipment endpoints
   customers/                    → OpenAPI contracts for /api/customers endpoints
+  auth/                          → OpenAPI contract for /api/auth/installs-login
 docs/
   SPEC.md                      → this file
 ```
@@ -275,7 +330,10 @@ non-component file names. API route handlers validate input with `zod` before to
 - **Never**: commit `.env` / database connection strings; commit the real customer `.xlsx`
   data file to the repo at all (**the GitHub repo is public** — the file is gitignored
   (`*.xlsx`) and must be placed locally, out-of-band, for seeding); delete customer or
-  equipment records without an explicit confirm step in the UI
+  equipment records without an explicit confirm step in the UI; commit `AUTH_COOKIE_SECRET`;
+  log or return `AppConfig.installsPassword` in any API response or error message; write the
+  actual `installsPassword` value into `prisma/seed.ts`, a migration, `.env.example`, or any
+  other committed file — set/change it only via `npx prisma studio` (out-of-band, not in git)
 
 ## Success Criteria
 
@@ -295,6 +353,10 @@ non-component file names. API route handlers validate input with `zod` before to
 - [ ] Both pages are usable on a mobile viewport (Tailwind responsive breakpoints) — grid
       degrades gracefully (e.g. horizontal scroll / column priority) and the form is fully
       usable one-handed on a phone
+- [ ] `/` redirects to `/new` — no leftover scaffold/placeholder content
+- [ ] `/installs` shows a password prompt (not the grid) until the correct password is
+      submitted; the password lives in `AppConfig.installsPassword` and can be changed by
+      editing that field directly in the DB, with no code change or redeploy required
 
 ## Decisions Log
 
@@ -309,5 +371,22 @@ non-component file names. API route handlers validate input with `zod` before to
 - Backend list endpoints are server-side paginated (see API Design Notes) to keep the grid
   fast as the dataset grows.
 - Tailwind CSS added alongside MUI for responsive/mobile-friendly layout.
+- `/` no longer has its own content — the create-next-app scaffold page is removed and the
+  route redirects to `/new` (chosen over `/installs` as the more common daily entry point).
+- `/installs` gets a single shared-password gate. Password is stored in plaintext in a new
+  one-row `AppConfig` table specifically so it can be changed by hand-editing the DB (Neon /
+  Prisma Studio) with no code change or redeploy — deliberate simplicity over hashing, since
+  the only person with DB access is the person operating this app.
+- The gate covers `/installs` only — `/new` and all `/api/**` routes stay ungated. Session is a
+  30-day HMAC-signed cookie (signed with a new `AUTH_COOKIE_SECRET` env var, not the password
+  itself), verified without touching the DB. No lockout/rate-limiting on wrong guesses.
+- Next.js 16 deprecated `middleware.ts` in favor of `proxy.ts` (same capabilities, renamed file/
+  export, and it now defaults to the **Node.js runtime** instead of Edge) — discovered while
+  implementing Task 25. Ultimately neither is used: since `next/headers`'s `cookies()` can be
+  read directly in a Server Component, and the gate covers exactly one page, doing the check in
+  `/installs/page.tsx` itself is simpler than routing through a separate proxy file — one less
+  file, no request-rewriting/header-threading to pass the auth result downstream, and the check
+  is already DB-free either way. `proxy.ts` would only earn its keep if more pages needed the
+  same gate.
 
 No open questions remain — spec is ready to move to the Plan phase.

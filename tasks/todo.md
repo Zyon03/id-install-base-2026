@@ -201,17 +201,17 @@ picks the next unchecked task from here.
   - Size: S
 
 - [x] Task 24: Implement login endpoint + session cookie helpers
-  - Acceptance: `/gen-feature` implements `POST /api/auth/installs-login` per contract — compares the submitted password against `AppConfig.installsPassword`, and on match sets an httpOnly cookie holding an HMAC-signed token (new `AUTH_COOKIE_SECRET` env var, 30-day expiry, never the password itself); `src/lib/auth.ts` holds the sign/verify helpers, reused by `src/proxy.ts` in Task 25
+  - Acceptance: `/gen-feature` implements `POST /api/auth/installs-login` per contract — compares the submitted password against `AppConfig.installsPassword`, and on match sets an httpOnly cookie holding an HMAC-signed token (new `AUTH_COOKIE_SECRET` env var, 30-day expiry, never the password itself); `src/lib/auth.ts` holds the sign/verify helpers, reused by `/installs/page.tsx`'s cookie check in Task 25
   - Verify: route tests cover correct password (cookie set), wrong password (rejected, no cookie, no password echoed back), and a missing/empty `AppConfig` row handled without crashing
   - Dependencies: Task 23
   - Files: `src/app/api/auth/installs-login/route.ts`, `src/lib/auth.ts`, `tests/unit/**`
   - Size: M
 
-- [ ] Task 25: Middleware gate + password prompt UI on `/installs`
-  - Acceptance: `src/proxy.ts` (Next.js 16's replacement for `middleware.ts`, defaults to the Node.js runtime) guards `/installs` by verifying the signed session cookie (signature/expiry check only, no DB call) and shows the password prompt when it's missing/invalid/expired; `src/components/installs/PasswordGate.tsx` renders the prompt, posts to `/api/auth/installs-login`, and reveals the grid on success without a full page reload
-  - Verify: manual check — visiting `/installs` with no cookie shows the prompt; wrong password shows an inline error and the grid stays hidden; correct password reveals the grid and survives a reload; `/new` and `GET /api/equipment` remain reachable directly with no cookie at all
+- [x] Task 25: Password gate + prompt UI on `/installs`
+  - Acceptance: `/installs/page.tsx` (async Server Component) reads the session cookie directly via `next/headers`' `cookies()` and verifies it (signature/expiry check only, no DB call), rendering `PasswordGate` instead of the grid when missing/invalid/expired — no separate `proxy.ts` needed for a single gated page, so it was dropped in favor of the simpler in-page check (see SPEC.md Decisions Log); `src/components/installs/PasswordGate.tsx` renders the prompt, posts to `/api/auth/installs-login`, and reveals the grid on success via `router.refresh()` (no full page reload)
+  - Verify: confirmed against a real running dev server (not just unit tests) — `/installs` with no cookie serves only the password form (no grid markup); wrong password returns 401 with no `Set-Cookie`; correct password returns 200 with a `HttpOnly; SameSite=lax; Max-Age=2592000` cookie; that cookie unlocks `/installs` (grid heading renders, prompt gone); `/new` and `GET /api/equipment` both return 200 with zero cookies
   - Dependencies: Task 24
-  - Files: `src/proxy.ts`, `src/components/installs/PasswordGate.tsx`, `src/app/installs/page.tsx`
+  - Files: `src/app/installs/page.tsx`, `src/components/installs/PasswordGate.tsx`, `tests/unit/installs-page.test.tsx` (fixed for the now-async page component)
   - Size: M
 
 - [ ] Task 26: Remove home page scaffold, redirect `/` to `/new`
