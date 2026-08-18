@@ -93,13 +93,13 @@ sequences the work; `tasks/todo.md` holds the actionable per-task checklist.
 - [x] Task 23: `AppConfig` schema + migration + placeholder-only seed
 - [x] Task 24: Implement login endpoint + session cookie helpers
 - [x] Task 25: Password gate + prompt UI on `/installs` (in-page cookie check, no `proxy.ts`)
-- [ ] Task 26: Remove home page scaffold, redirect `/` to `/new`
+- [x] Task 26: Remove home page scaffold, redirect `/` to `/new`
 
 ### Checkpoint: Home redirect + Install gate
-- [ ] `/` redirects to `/new`; no leftover scaffold content
-- [ ] `/installs` is inaccessible without the correct password; correct password persists via
+- [x] `/` redirects to `/new`; no leftover scaffold content
+- [x] `/installs` is inaccessible without the correct password; correct password persists via
       cookie for 30 days; `/new` and `/api/**` remain reachable without it
-- [ ] No password value appears anywhere in git history for this phase's commits
+- [x] No password value appears anywhere in git history for this phase's commits
 - [ ] Review with human before proceeding
 
 ### Phase 7: Deploy

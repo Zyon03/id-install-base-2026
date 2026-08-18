@@ -214,17 +214,17 @@ picks the next unchecked task from here.
   - Files: `src/app/installs/page.tsx`, `src/components/installs/PasswordGate.tsx`, `tests/unit/installs-page.test.tsx` (fixed for the now-async page component)
   - Size: M
 
-- [ ] Task 26: Remove home page scaffold, redirect `/` to `/new`
+- [x] Task 26: Remove home page scaffold, redirect `/` to `/new`
   - Acceptance: `src/app/page.tsx` no longer renders the create-next-app placeholder — it redirects (server-side) straight to `/new`
-  - Verify: visiting `/` lands on `/new` with no intermediate placeholder flash
+  - Verify: confirmed against a real running production server (`npm run start`) — `GET /` returns `307` with `Location: /new`
   - Dependencies: None
-  - Files: `src/app/page.tsx`
+  - Files: `src/app/page.tsx`, `tests/unit/home.test.tsx` (fixed for the redirect instead of rendered content)
   - Size: XS
 
 ### Checkpoint: Home redirect + Install gate
-- [ ] `/` redirects to `/new`; no leftover scaffold content anywhere
-- [ ] `/installs` is inaccessible without the correct password; correct password persists via a 30-day cookie; `/new` and `/api/**` remain reachable without it
-- [ ] No password value appears anywhere in git history for this phase's commits
+- [x] `/` redirects to `/new`; no leftover scaffold content anywhere
+- [x] `/installs` is inaccessible without the correct password; correct password persists via a 30-day cookie; `/new` and `/api/**` remain reachable without it
+- [x] No password value appears anywhere in git history for this phase's commits
 - [ ] Review with human before proceeding
 
 ## Phase 7: Deploy

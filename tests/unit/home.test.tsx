@@ -1,12 +1,16 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const redirectMock = vi.fn();
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => redirectMock(url),
+}));
+
+// Imported after the mock so the page picks up the mocked redirect().
 import Home from "@/app/page";
 
 describe("Home page", () => {
-  it("renders the app title", () => {
-    render(<Home />);
-    expect(
-      screen.getByRole("heading", { name: /id install base 2026/i })
-    ).toBeInTheDocument();
+  it("redirects to /new", () => {
+    Home();
+    expect(redirectMock).toHaveBeenCalledWith("/new");
   });
 });
