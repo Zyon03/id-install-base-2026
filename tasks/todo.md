@@ -200,18 +200,18 @@ picks the next unchecked task from here.
   - Files: `prisma/schema.prisma`, `prisma/migrations/**`, `prisma/seed.ts`
   - Size: S
 
-- [ ] Task 24: Implement login endpoint + session cookie helpers
-  - Acceptance: `/gen-feature` implements `POST /api/auth/installs-login` per contract — compares the submitted password against `AppConfig.installsPassword`, and on match sets an httpOnly cookie holding an HMAC-signed token (new `AUTH_COOKIE_SECRET` env var, 30-day expiry, never the password itself); `src/lib/auth.ts` holds the sign/verify helpers, reused by middleware in Task 25
+- [x] Task 24: Implement login endpoint + session cookie helpers
+  - Acceptance: `/gen-feature` implements `POST /api/auth/installs-login` per contract — compares the submitted password against `AppConfig.installsPassword`, and on match sets an httpOnly cookie holding an HMAC-signed token (new `AUTH_COOKIE_SECRET` env var, 30-day expiry, never the password itself); `src/lib/auth.ts` holds the sign/verify helpers, reused by `src/proxy.ts` in Task 25
   - Verify: route tests cover correct password (cookie set), wrong password (rejected, no cookie, no password echoed back), and a missing/empty `AppConfig` row handled without crashing
   - Dependencies: Task 23
   - Files: `src/app/api/auth/installs-login/route.ts`, `src/lib/auth.ts`, `tests/unit/**`
   - Size: M
 
 - [ ] Task 25: Middleware gate + password prompt UI on `/installs`
-  - Acceptance: `src/middleware.ts` guards `/installs` by verifying the signed session cookie (signature/expiry check only, no DB call, so it runs on the Edge runtime) and shows the password prompt when it's missing/invalid/expired; `src/components/installs/PasswordGate.tsx` renders the prompt, posts to `/api/auth/installs-login`, and reveals the grid on success without a full page reload
+  - Acceptance: `src/proxy.ts` (Next.js 16's replacement for `middleware.ts`, defaults to the Node.js runtime) guards `/installs` by verifying the signed session cookie (signature/expiry check only, no DB call) and shows the password prompt when it's missing/invalid/expired; `src/components/installs/PasswordGate.tsx` renders the prompt, posts to `/api/auth/installs-login`, and reveals the grid on success without a full page reload
   - Verify: manual check — visiting `/installs` with no cookie shows the prompt; wrong password shows an inline error and the grid stays hidden; correct password reveals the grid and survives a reload; `/new` and `GET /api/equipment` remain reachable directly with no cookie at all
   - Dependencies: Task 24
-  - Files: `src/middleware.ts`, `src/components/installs/PasswordGate.tsx`, `src/app/installs/page.tsx`
+  - Files: `src/proxy.ts`, `src/components/installs/PasswordGate.tsx`, `src/app/installs/page.tsx`
   - Size: M
 
 - [ ] Task 26: Remove home page scaffold, redirect `/` to `/new`
