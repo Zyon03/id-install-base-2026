@@ -193,7 +193,7 @@ picks the next unchecked task from here.
   - Files: `contracts/auth/installs_login.yaml`
   - Size: XS
 
-- [ ] Task 23: `AppConfig` schema + migration + placeholder-only seed
+- [x] Task 23: `AppConfig` schema + migration + placeholder-only seed
   - Acceptance: `AppConfig` model added to `prisma/schema.prisma` exactly matching `SPEC.md`'s Data Model (single row, `installsPassword String`); `npx prisma migrate dev` creates the migration cleanly; `prisma/seed.ts` creates the row only if missing, with an empty/placeholder value — the real password is never written into `seed.ts`, a migration, or `.env.example`
   - Verify: `npx prisma studio` shows the `AppConfig` table with exactly one row; diff of the commit contains no literal password string
   - Dependencies: Task 22

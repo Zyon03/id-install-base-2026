@@ -90,7 +90,7 @@ sequences the work; `tasks/todo.md` holds the actionable per-task checklist.
 
 ### Phase 6: Home Redirect + Install Password Gate
 - [x] Task 22: Contract — `POST /api/auth/installs-login`
-- [ ] Task 23: `AppConfig` schema + migration + placeholder-only seed
+- [x] Task 23: `AppConfig` schema + migration + placeholder-only seed
 - [ ] Task 24: Implement login endpoint + session cookie helpers
 - [ ] Task 25: Middleware gate + password prompt UI on `/installs`
 - [ ] Task 26: Remove home page scaffold, redirect `/` to `/new`

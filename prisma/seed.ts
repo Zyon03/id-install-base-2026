@@ -6,7 +6,25 @@ import { parseInstallBaseWorkbook } from "../src/lib/xlsx";
 
 const SOURCE_FILE = "ID install base 2026 (higlighted ).xlsx";
 
+async function ensureAppConfig() {
+  const existing = await prisma.appConfig.count();
+  if (existing > 0) {
+    console.log("AppConfig already exists, leaving installsPassword untouched.");
+    return;
+  }
+
+  await prisma.appConfig.create({
+    data: { installsPassword: "changeme" },
+  });
+  console.log(
+    "Created AppConfig with a placeholder password — set the real value via " +
+      "`npx prisma studio` before relying on the /installs gate."
+  );
+}
+
 async function main() {
+  await ensureAppConfig();
+
   const filePath = path.join(process.cwd(), SOURCE_FILE);
 
   let buffer: Buffer;

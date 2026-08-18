@@ -83,3 +83,11 @@ model EquipmentRecord {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Single-row table holding the /installs password gate. Plaintext by
+// design (SPEC.md's Authentication section) — the only person with DB
+// access changes it directly via `npx prisma studio`, never through code.
+model AppConfig {
+  id               String @id @default(cuid())
+  installsPassword String
+}
